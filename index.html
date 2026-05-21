@@ -3,194 +3,274 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#185FA5">
+<meta name="theme-color" content="#1a3a5c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>할 일 관리</title>
+<title>영업 다이어리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; background: #f0f4f8; font-family: -apple-system, 'Noto Sans KR', sans-serif; }
-  body { overflow-x: hidden; }
+:root {
+  --navy: #1a3a5c;
+  --navy2: #254d7a;
+  --navy3: #2d6199;
+  --sky: #e8f2fb;
+  --sky2: #c5ddf5;
+  --sky3: #90bfe8;
+  --gold: #c8860a;
+  --gold-bg: #fef8ec;
+  --gold-light: #fdebc6;
+  --green: #1a7a4a;
+  --green-bg: #eaf5ef;
+  --green-light: #b8e0ca;
+  --red: #b03030;
+  --red-bg: #fceaea;
+  --red-light: #f0b8b8;
+  --gray: #4a5568;
+  --gray-bg: #f4f6f9;
+  --border: #dde3ec;
+  --text: #1a2535;
+  --text2: #4a5568;
+  --text3: #8a95a3;
+  --white: #ffffff;
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-pill: 99px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--gray-bg); font-family: -apple-system, 'Noto Sans KR', sans-serif; color: var(--text); }
 
-  .wrap { max-width: 480px; margin: 0 auto; padding: 16px 14px 100px; min-height: 100vh; }
+/* 로딩 */
+#loading-overlay { position: fixed; inset: 0; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 999; }
+#loading-overlay.hidden { display: none; }
+.lo-icon { font-size: 52px; color: var(--sky); }
+.lo-text { font-size: 15px; color: var(--sky2); }
 
-  .header { background: #185FA5; border-radius: 24px; padding: 18px 20px 14px; margin-bottom: 14px; }
-  .date-lbl { font-size: 12px; color: #85B7EB; margin-bottom: 4px; }
-  .title { font-size: 20px; font-weight: 600; color: #E6F1FB; display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.wrap { max-width: 480px; margin: 0 auto; padding: 14px 13px 100px; }
 
-  .tab-btns { display: flex; gap: 6px; }
-  .tab-btn { flex: 1; font-size: 13px; padding: 8px 6px; border-radius: 99px; border: 1.5px solid #85B7EB; background: transparent; color: #B5D4F4; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 5px; }
-  .tab-btn.active { background: #E6F1FB; color: #0C447C; border-color: #E6F1FB; font-weight: 600; }
+/* 동기화 */
+.sync-bar { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 4px 12px; border-radius: var(--radius-pill); margin-bottom: 10px; }
+.sync-bar.synced { background: var(--green-bg); color: var(--green); }
+.sync-bar.syncing { background: var(--sky); color: var(--navy2); }
+.sync-bar.offline { background: var(--red-bg); color: var(--red); }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sync-bar.synced .sync-dot { background: var(--green); }
+.sync-bar.syncing .sync-dot { background: var(--navy3); animation: blink 1s infinite; }
+.sync-bar.offline .sync-dot { background: var(--red); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-  .stat { border-radius: 20px; padding: 12px 10px; }
-  .stat .num { font-size: 24px; font-weight: 700; }
-  .stat .lbl { font-size: 11px; margin-top: 2px; }
-  .stat.blue { background: #E6F1FB; } .stat.blue .num { color: #0C447C; } .stat.blue .lbl { color: #185FA5; }
-  .stat.green { background: #E1F5EE; } .stat.green .num { color: #085041; } .stat.green .lbl { color: #0F6E56; }
-  .stat.coral { background: #FAECE7; } .stat.coral .num { color: #712B13; } .stat.coral .lbl { color: #993C1D; }
+/* 헤더 */
+.header { background: var(--navy); border-radius: var(--radius-xl); padding: 18px 20px 14px; margin-bottom: 13px; }
+.header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.header-date { font-size: 12px; color: var(--sky3); margin-bottom: 3px; }
+.header-title { font-size: 20px; font-weight: 700; color: var(--white); display: flex; align-items: center; gap: 8px; }
+.header-badge { background: var(--gold-bg); color: var(--gold); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: var(--radius-pill); border: 1px solid var(--gold-light); white-space: nowrap; margin-top: 4px; }
 
-  .add-row { display: flex; gap: 8px; margin-bottom: 14px; }
-  .add-row input { flex: 1; height: 46px; border-radius: 99px; border: 1.5px solid #B5D4F4; background: #fff; color: #1a1a1a; padding: 0 18px; font-size: 15px; outline: none; font-family: inherit; }
-  .add-row input:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(53,138,221,0.15); }
-  .add-btn { height: 46px; min-width: 46px; padding: 0 18px; border-radius: 99px; border: none; background: #185FA5; color: #E6F1FB; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit; }
-  .add-btn:active { background: #0C447C; transform: scale(0.96); }
+.tab-btns { display: flex; gap: 5px; }
+.tab-btn { flex: 1; font-size: 12px; padding: 8px 4px; border-radius: var(--radius-pill); border: 1.5px solid #3a5a7a; background: transparent; color: var(--sky3); cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.tab-btn.active { background: var(--white); color: var(--navy); border-color: var(--white); font-weight: 700; }
 
-  .section-lbl { font-size: 11px; font-weight: 600; color: #888780; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+/* KPI 카드 */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 13px; }
+.kpi { border-radius: var(--radius-lg); padding: 11px 8px; text-align: center; }
+.kpi .kn { font-size: 22px; font-weight: 700; }
+.kpi .kl { font-size: 10px; margin-top: 2px; font-weight: 500; }
+.kpi.blue { background: var(--sky); } .kpi.blue .kn { color: var(--navy); } .kpi.blue .kl { color: var(--navy2); }
+.kpi.gold { background: var(--gold-bg); } .kpi.gold .kn { color: var(--gold); } .kpi.gold .kl { color: #9a6500; }
+.kpi.green { background: var(--green-bg); } .kpi.green .kn { color: var(--green); } .kpi.green .kl { color: #145c37; }
+.kpi.red { background: var(--red-bg); } .kpi.red .kn { color: var(--red); } .kpi.red .kl { color: #8a2020; }
 
-  .task-list { display: flex; flex-direction: column; gap: 10px; }
-  .task-card { border-radius: 20px; padding: 14px 16px; border: 2px solid transparent; }
-  .task-card.pending { border-color: #B5D4F4; background: #fff; }
-  .task-card.done { border-color: #9FE1CB; background: #E1F5EE; }
-  .task-card.missed { border-color: #F5C4B3; background: #FAECE7; }
+/* 섹션 라벨 */
+.section-lbl { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
 
-  .task-top { display: flex; align-items: center; gap: 10px; }
-  .task-icon { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
-  .task-card.pending .task-icon { background: #E6F1FB; color: #185FA5; }
-  .task-card.done .task-icon { background: #1D9E75; color: #E1F5EE; }
-  .task-card.missed .task-icon { background: #D85A30; color: #FAECE7; }
-  .task-text { flex: 1; font-size: 15px; color: #1a1a1a; line-height: 1.4; }
-  .task-card.done .task-text { text-decoration: line-through; color: #0F6E56; }
-  .task-card.missed .task-text { color: #712B13; }
+/* 활동 추가 폼 */
+.add-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-xl); padding: 16px; margin-bottom: 13px; }
+.add-card-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.form-row input, .form-row select, .form-row textarea { flex: 1; border: 1.5px solid var(--border); border-radius: var(--radius-pill); background: var(--gray-bg); color: var(--text); padding: 0 14px; font-size: 14px; outline: none; font-family: inherit; height: 42px; }
+.form-row select { cursor: pointer; }
+.form-row textarea { height: 70px; border-radius: var(--radius-md); padding: 10px 14px; resize: none; line-height: 1.4; }
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--navy3); background: var(--white); }
+.type-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.type-btn { font-size: 12px; padding: 6px 13px; border-radius: var(--radius-pill); border: 1.5px solid var(--border); background: var(--gray-bg); color: var(--text2); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 4px; }
+.type-btn.active { border-color: var(--navy); background: var(--navy); color: var(--white); font-weight: 600; }
+.submit-btn { width: 100%; height: 44px; border-radius: var(--radius-pill); border: none; background: var(--navy); color: var(--white); font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
+.submit-btn:active { background: var(--navy2); transform: scale(.98); }
 
-  .badge { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
-  .badge.pending { background: #E6F1FB; color: #185FA5; }
-  .badge.done { background: #1D9E75; color: #E1F5EE; }
-  .badge.missed { background: #D85A30; color: #FAECE7; }
+/* 활동 카드 */
+.activity-list { display: flex; flex-direction: column; gap: 9px; }
+.act-card { background: var(--white); border-radius: var(--radius-lg); border: 1.5px solid var(--border); padding: 14px 15px; border-left: 4px solid var(--border); }
+.act-card.call { border-left-color: var(--navy3); }
+.act-card.meet { border-left-color: var(--gold); }
+.act-card.contract { border-left-color: var(--green); }
+.act-card.followup { border-left-color: #9b59b6; }
+.act-card.done { opacity: .7; }
+.act-top { display: flex; align-items: flex-start; gap: 10px; }
+.act-type-badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-pill); white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+.act-type-badge.call { background: var(--sky); color: var(--navy); }
+.act-type-badge.meet { background: var(--gold-bg); color: var(--gold); }
+.act-type-badge.contract { background: var(--green-bg); color: var(--green); }
+.act-type-badge.followup { background: #f3eafd; color: #6c2fa0; }
+.act-body { flex: 1; }
+.act-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.act-card.done .act-name { text-decoration: line-through; color: var(--text3); }
+.act-detail { font-size: 12px; color: var(--text2); margin-bottom: 4px; line-height: 1.4; }
+.act-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.act-tag { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--gray-bg); color: var(--text3); display: flex; align-items: center; gap: 3px; }
+.act-status-row { display: flex; gap: 6px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+.act-btn { font-size: 12px; padding: 6px 13px; border-radius: var(--radius-pill); cursor: pointer; display: flex; align-items: center; gap: 4px; font-family: inherit; border: 1.5px solid var(--border); background: var(--gray-bg); color: var(--text2); }
+.act-btn.done-btn { border-color: var(--green); background: var(--green-bg); color: var(--green); font-weight: 600; }
+.act-btn.done-btn:active { background: var(--green-light); }
+.act-btn.fail-btn { border-color: var(--red); background: var(--red-bg); color: var(--red); font-weight: 600; }
+.act-btn.fail-btn:active { background: var(--red-light); }
+.act-btn.del-btn:active { background: var(--red-bg); border-color: var(--red-light); color: var(--red); }
+.act-btn.undo-btn { color: var(--navy3); border-color: var(--sky2); background: var(--sky); }
+.act-status-badge { font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: var(--radius-pill); }
+.act-status-badge.done { background: var(--green); color: var(--white); }
+.act-status-badge.failed { background: var(--red); color: var(--white); }
+.reason-box { margin-top: 9px; display: flex; flex-direction: column; gap: 6px; }
+.reason-input { width: 100%; height: 58px; border-radius: var(--radius-md); border: 1.5px solid var(--red-light); background: var(--white); color: var(--text); padding: 9px 13px; font-size: 13px; resize: none; outline: none; font-family: inherit; }
+.reason-save-btn { align-self: flex-end; font-size: 12px; padding: 6px 16px; border-radius: var(--radius-pill); border: none; background: var(--red); color: var(--white); cursor: pointer; font-family: inherit; font-weight: 700; }
+.reason-display { font-size: 12px; color: var(--red); background: var(--red-bg); border-radius: var(--radius-md); padding: 8px 12px; margin-top: 8px; display: flex; align-items: flex-start; gap: 5px; line-height: 1.4; }
 
-  .btn-row { display: flex; gap: 6px; margin-top: 10px; align-items: center; padding-left: 44px; flex-wrap: wrap; }
-  .action-btn { font-size: 12px; padding: 7px 14px; border-radius: 99px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-family: inherit; }
-  .btn-complete { border: 1.5px solid #1D9E75; background: #E1F5EE; color: #085041; }
-  .btn-complete:active { background: #9FE1CB; }
-  .btn-fail { border: 1.5px solid #D85A30; background: #FAECE7; color: #712B13; }
-  .btn-fail:active { background: #F5C4B3; }
-  .btn-del { border: 1px solid #ccc; background: #f5f5f5; color: #666; }
-  .btn-del:active { background: #FCEBEB; border-color: #F09595; color: #A32D2D; }
-  .undo-link { font-size: 12px; color: #185FA5; cursor: pointer; text-decoration: underline; padding: 4px 0; background: none; border: none; font-family: inherit; }
+.empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text3); font-size: 14px; border: 1.5px dashed var(--sky2); border-radius: var(--radius-xl); background: var(--sky); }
+.empty-state i { font-size: 32px; color: var(--navy3); display: block; margin-bottom: 8px; }
 
-  .reason-box { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; padding-left: 44px; }
-  .reason-input { width: 100%; height: 64px; border-radius: 16px; border: 1.5px solid #F0997B; background: #fff; color: #1a1a1a; padding: 10px 14px; font-size: 14px; resize: none; outline: none; font-family: inherit; }
-  .reason-input:focus { box-shadow: 0 0 0 3px rgba(240,153,123,0.2); }
-  .reason-submit { align-self: flex-end; font-size: 13px; padding: 7px 18px; border-radius: 99px; border: none; background: #D85A30; color: #FAECE7; cursor: pointer; font-family: inherit; font-weight: 600; }
-  .reason-submit:active { background: #993C1D; }
-  .reason-display { font-size: 12px; color: #712B13; background: #F5C4B3; border-radius: 14px; padding: 8px 14px; line-height: 1.5; margin-top: 8px; margin-left: 44px; display: flex; align-items: flex-start; gap: 6px; }
+/* 과거 탭 */
+.past-panel { display: flex; flex-direction: column; gap: 12px; }
+.date-nav { display: flex; align-items: center; gap: 6px; background: var(--sky); border-radius: var(--radius-pill); padding: 6px 8px; }
+.nav-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--white); color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.nav-btn:disabled { opacity: .3; }
+.chip-scroll { display: flex; gap: 6px; flex: 1; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+.chip-scroll::-webkit-scrollbar { display: none; }
+.date-chip { font-size: 12px; padding: 5px 13px; border-radius: var(--radius-pill); border: 1.5px solid var(--sky2); background: var(--white); color: var(--navy2); cursor: pointer; white-space: nowrap; font-family: inherit; flex-shrink: 0; }
+.date-chip.selected { background: var(--navy); color: var(--white); border-color: var(--navy); font-weight: 700; }
 
-  .empty { text-align: center; padding: 2.5rem 1rem; color: #888; font-size: 14px; border: 1.5px dashed #B5D4F4; border-radius: 24px; background: #E6F1FB; }
-  .empty i { font-size: 32px; color: #378ADD; display: block; margin-bottom: 8px; }
+.past-day-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-xl); padding: 18px; }
+.past-day-title { font-size: 15px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.past-summary-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-bottom: 12px; }
+.ps-item { border-radius: var(--radius-md); padding: 9px 6px; text-align: center; }
+.ps-item .pn { font-size: 18px; font-weight: 700; }
+.ps-item .pl { font-size: 10px; margin-top: 2px; }
+.ps-item.blue { background: var(--sky); } .ps-item.blue .pn { color: var(--navy); } .ps-item.blue .pl { color: var(--navy2); }
+.ps-item.green { background: var(--green-bg); } .ps-item.green .pn { color: var(--green); } .ps-item.green .pl { color: #145c37; }
+.ps-item.red { background: var(--red-bg); } .ps-item.red .pn { color: var(--red); } .ps-item.red .pl { color: #8a2020; }
+.ps-item.gold { background: var(--gold-bg); } .ps-item.gold .pn { color: var(--gold); } .ps-item.gold .pl { color: #9a6500; }
+.past-bar { height: 10px; background: var(--red-bg); border-radius: var(--radius-pill); overflow: hidden; display: flex; margin: 8px 0; }
+.past-bar-done { background: var(--green); }
+.past-bar-fail { background: var(--red); }
+.past-bar-pend { background: var(--sky2); }
+.leg-row { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text2); margin-bottom: 12px; }
+.leg-row span { display: flex; align-items: center; gap: 4px; }
+.leg-sq { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
-  /* PAST TAB */
-  .past-panel { display: flex; flex-direction: column; gap: 12px; }
-  .date-chips-wrap { display: flex; align-items: center; gap: 6px; background: #E6F1FB; border-radius: 99px; padding: 6px 8px; }
-  .nav-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: #fff; color: #185FA5; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-  .nav-btn:active { background: #B5D4F4; }
-  .nav-btn:disabled { opacity: 0.3; }
-  .chip-scroll { display: flex; gap: 6px; flex: 1; overflow-x: auto; padding: 2px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-  .chip-scroll::-webkit-scrollbar { display: none; }
-  .nav-date-chip { font-size: 12px; padding: 5px 13px; border-radius: 99px; border: 1.5px solid #B5D4F4; background: #fff; color: #185FA5; cursor: pointer; white-space: nowrap; font-family: inherit; flex-shrink: 0; }
-  .nav-date-chip.selected { background: #185FA5; color: #E6F1FB; border-color: #185FA5; font-weight: 600; }
-  .nav-date-chip:active { background: #E6F1FB; }
+/* 통계 탭 */
+.stats-panel { display: flex; flex-direction: column; gap: 12px; }
+.stat-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-xl); padding: 18px; }
+.stat-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.stat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
+.sg-item { border-radius: var(--radius-lg); padding: 13px 12px; }
+.sg-item .gn { font-size: 24px; font-weight: 700; }
+.sg-item .gl { font-size: 11px; margin-top: 3px; }
+.sg-item.blue { background: var(--sky); } .sg-item.blue .gn { color: var(--navy); } .sg-item.blue .gl { color: var(--navy2); }
+.sg-item.green { background: var(--green-bg); } .sg-item.green .gn { color: var(--green); } .sg-item.green .gl { color: #145c37; }
+.sg-item.gold { background: var(--gold-bg); } .sg-item.gold .gn { color: var(--gold); } .sg-item.gold .gl { color: #9a6500; }
+.sg-item.red { background: var(--red-bg); } .sg-item.red .gn { color: var(--red); } .sg-item.red .gl { color: #8a2020; }
+.big-bar-wrap { margin-bottom: 8px; }
+.big-bar-labels { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; font-weight: 600; }
+.big-bar-done-lbl { color: var(--green); }
+.big-bar-fail-lbl { color: var(--red); }
+.big-bar-track { height: 24px; background: var(--red-bg); border-radius: var(--radius-pill); overflow: hidden; display: flex; }
+.big-bar-done { background: var(--green); border-radius: var(--radius-pill) 0 0 var(--radius-pill); display: flex; align-items: center; justify-content: center; }
+.big-bar-done.full { border-radius: var(--radius-pill); }
+.big-bar-fail { background: var(--red); flex: 1; border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
+.big-bar-pct { font-size: 11px; color: var(--white); font-weight: 700; padding: 0 8px; white-space: nowrap; }
+.type-breakdown { display: flex; flex-direction: column; gap: 8px; }
+.tb-row { display: flex; align-items: center; gap: 10px; }
+.tb-label { font-size: 12px; width: 54px; flex-shrink: 0; color: var(--text2); font-weight: 600; }
+.tb-bar { flex: 1; height: 10px; background: var(--gray-bg); border-radius: var(--radius-pill); overflow: hidden; }
+.tb-fill { height: 100%; border-radius: var(--radius-pill); }
+.tb-count { font-size: 12px; color: var(--text3); width: 30px; text-align: right; flex-shrink: 0; }
 
-  .past-day-card { background: #fff; border: 1.5px solid #B5D4F4; border-radius: 24px; padding: 18px 18px; }
-  .past-day-header { margin-bottom: 12px; }
-  .past-day-title { font-size: 15px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .past-badges { display: flex; gap: 6px; flex-wrap: wrap; }
-  .past-badge { font-size: 11px; padding: 4px 12px; border-radius: 99px; font-weight: 600; }
-  .past-badge.g { background: #E1F5EE; color: #085041; }
-  .past-badge.o { background: #FAECE7; color: #712B13; }
-  .past-badge.b { background: #E6F1FB; color: #0C447C; }
+.no-data { text-align: center; padding: 2.5rem; color: var(--text3); font-size: 14px; border: 1.5px dashed var(--border); border-radius: var(--radius-xl); }
+.no-data i { font-size: 28px; display: block; margin-bottom: 8px; }
 
-  .past-bar { height: 12px; background: #FAECE7; border-radius: 99px; overflow: hidden; display: flex; margin: 12px 0 6px; }
-  .past-bar-done { background: #1D9E75; }
-  .past-bar-miss { background: #D85A30; }
-  .past-bar-pend { background: #B5D4F4; }
-
-  .leg-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #666; margin-bottom: 14px; }
-  .leg-row span { display: flex; align-items: center; gap: 4px; }
-  .leg-sq { width: 10px; height: 10px; border-radius: 99px; flex-shrink: 0; }
-
-  .past-task-list { display: flex; flex-direction: column; gap: 8px; }
-  .past-task { border-radius: 16px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
-  .past-task.done { background: #E1F5EE; }
-  .past-task.missed { background: #FAECE7; }
-  .past-task.pending { background: #f5f5f5; }
-  .past-task-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
-  .past-task.done .past-task-icon { background: #1D9E75; color: #E1F5EE; }
-  .past-task.missed .past-task-icon { background: #D85A30; color: #FAECE7; }
-  .past-task.pending .past-task-icon { background: #B5D4F4; color: #185FA5; }
-  .past-task-body { flex: 1; }
-  .past-task-text { font-size: 14px; color: #1a1a1a; line-height: 1.4; }
-  .past-task.done .past-task-text { text-decoration: line-through; color: #0F6E56; }
-  .past-task.missed .past-task-text { color: #712B13; }
-  .past-task-reason { font-size: 12px; color: #993C1D; margin-top: 5px; background: #F5C4B3; border-radius: 10px; padding: 4px 10px; display: inline-block; line-height: 1.4; }
-
-  /* STATS TAB */
-  .history-panel { display: flex; flex-direction: column; gap: 12px; }
-  .overall-card { background: #fff; border: 1.5px solid #B5D4F4; border-radius: 24px; padding: 18px 18px; }
-  .overall-title { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-  .overall-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-  .ov-stat { border-radius: 16px; padding: 12px 10px; }
-  .ov-stat .n { font-size: 20px; font-weight: 700; }
-  .ov-stat .l { font-size: 11px; margin-top: 2px; }
-  .ov-stat.blue { background: #E6F1FB; } .ov-stat.blue .n { color: #0C447C; } .ov-stat.blue .l { color: #185FA5; }
-  .ov-stat.green { background: #E1F5EE; } .ov-stat.green .n { color: #085041; } .ov-stat.green .l { color: #0F6E56; }
-  .ov-stat.coral { background: #FAECE7; } .ov-stat.coral .n { color: #712B13; } .ov-stat.coral .l { color: #993C1D; }
-
-  .bar-labels { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
-  .bar-lbl-done { color: #0F6E56; font-weight: 600; }
-  .bar-lbl-miss { color: #993C1D; font-weight: 600; }
-  .bar-track { height: 22px; background: #FAECE7; border-radius: 99px; overflow: hidden; display: flex; }
-  .bar-done-fill { background: #1D9E75; border-radius: 99px 0 0 99px; display: flex; align-items: center; justify-content: center; }
-  .bar-done-fill.full { border-radius: 99px; }
-  .bar-miss-fill { background: #D85A30; flex: 1; border-radius: 0 99px 99px 0; }
-  .bar-pct-text { font-size: 11px; color: #E1F5EE; font-weight: 600; white-space: nowrap; padding: 0 8px; }
-
-  .chart-card { background: #fff; border: 1.5px solid #B5D4F4; border-radius: 24px; padding: 18px 18px; }
-  .chart-title { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-  .chart-legend { display: flex; gap: 14px; margin-bottom: 10px; font-size: 12px; color: #666; flex-wrap: wrap; }
-  .chart-legend span { display: flex; align-items: center; gap: 4px; }
-
-  .no-data { text-align: center; padding: 2.5rem; color: #888; font-size: 14px; border: 1.5px dashed #ccc; border-radius: 24px; }
-  .no-data i { font-size: 28px; display: block; margin-bottom: 8px; }
-
-  .panel { display: none; }
-  .panel.active { display: block; }
+.panel { display: none; }
+.panel.active { display: block; }
 </style>
 </head>
 <body>
+
+<div id="loading-overlay">
+  <i class="ti ti-briefcase lo-icon"></i>
+  <div class="lo-text">영업 다이어리 로딩 중...</div>
+</div>
+
 <div class="wrap">
+  <div class="sync-bar syncing" id="sync-bar">
+    <div class="sync-dot"></div>
+    <span id="sync-text">연결 중...</span>
+  </div>
 
   <div class="header">
-    <div class="date-lbl" id="date-label"></div>
-    <div class="title"><i class="ti ti-checklist"></i> 할 일 관리</div>
+    <div class="header-top">
+      <div>
+        <div class="header-date" id="date-label"></div>
+        <div class="header-title"><i class="ti ti-briefcase"></i> 영업 다이어리</div>
+      </div>
+      <div class="header-badge" id="today-goal-badge">오늘 0건</div>
+    </div>
     <div class="tab-btns">
       <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">
-        <i class="ti ti-calendar-today" style="font-size:14px"></i> 오늘
+        <i class="ti ti-calendar-today" style="font-size:13px"></i> 오늘
       </button>
       <button class="tab-btn" id="tab-past" onclick="switchTab('past')">
-        <i class="ti ti-history" style="font-size:14px"></i> 과거
+        <i class="ti ti-history" style="font-size:13px"></i> 과거
       </button>
       <button class="tab-btn" id="tab-stats" onclick="switchTab('stats')">
-        <i class="ti ti-chart-bar" style="font-size:14px"></i> 통계
+        <i class="ti ti-chart-bar" style="font-size:13px"></i> 통계
       </button>
     </div>
   </div>
 
   <!-- 오늘 탭 -->
   <div id="panel-today" class="panel active">
-    <div class="stats">
-      <div class="stat blue"><div class="num" id="s-total">0</div><div class="lbl">전체</div></div>
-      <div class="stat green"><div class="num" id="s-done">0</div><div class="lbl">완료</div></div>
-      <div class="stat coral"><div class="num" id="s-miss">0</div><div class="lbl">미완료</div></div>
+    <div class="kpi-row">
+      <div class="kpi blue"><div class="kn" id="kpi-total">0</div><div class="kl">전체</div></div>
+      <div class="kpi gold"><div class="kn" id="kpi-pend">0</div><div class="kl">예정</div></div>
+      <div class="kpi green"><div class="kn" id="kpi-done">0</div><div class="kl">완료</div></div>
+      <div class="kpi red"><div class="kn" id="kpi-fail">0</div><div class="kl">무산</div></div>
     </div>
-    <div class="add-row">
-      <input type="text" id="task-input" placeholder="새 할 일을 입력하세요..." maxlength="80" />
-      <button class="add-btn" onclick="addTask()"><i class="ti ti-plus"></i></button>
+
+    <div class="add-card">
+      <div class="add-card-title"><i class="ti ti-plus-circle"></i> 활동 추가</div>
+      <div class="type-btns" id="type-btns">
+        <button class="type-btn active" data-type="call" onclick="selectType('call')"><i class="ti ti-phone"></i> 전화콜</button>
+        <button class="type-btn" data-type="meet" onclick="selectType('meet')"><i class="ti ti-users"></i> 미팅</button>
+        <button class="type-btn" data-type="contract" onclick="selectType('contract')"><i class="ti ti-file-text"></i> 계약</button>
+        <button class="type-btn" data-type="followup" onclick="selectType('followup')"><i class="ti ti-refresh"></i> 팔로업</button>
+      </div>
+      <div class="form-row">
+        <input type="text" id="input-name" placeholder="고객명" maxlength="20" />
+      </div>
+      <div class="form-row">
+        <input type="text" id="input-product" placeholder="보험료 (예: 월 5만원)" maxlength="20" />
+      </div>
+      <div class="form-row">
+        <input type="text" id="input-time" placeholder="시간 (예: 오후 2시, 수시)" maxlength="20" />
+      </div>
+      <div class="form-row">
+        <input type="text" id="input-phone" placeholder="연락처 (선택)" maxlength="20" />
+      </div>
+      <div class="form-row">
+        <textarea id="input-memo" placeholder="메모 (선택)" maxlength="100"></textarea>
+      </div>
+      <button class="submit-btn" onclick="addActivity()"><i class="ti ti-plus"></i> 활동 등록</button>
     </div>
-    <div class="section-lbl"><i class="ti ti-layout-list"></i> 할 일 목록</div>
-    <div class="task-list" id="task-list"></div>
+
+    <div class="section-lbl"><i class="ti ti-list"></i> 오늘의 영업 활동</div>
+    <div class="activity-list" id="activity-list"></div>
   </div>
 
   <!-- 과거 탭 -->
@@ -200,209 +280,306 @@
 
   <!-- 통계 탭 -->
   <div id="panel-stats" class="panel">
-    <div class="history-panel" id="history-panel"></div>
+    <div class="stats-panel" id="stats-panel"></div>
   </div>
-
 </div>
 
-<script>
-const STORAGE_KEY = 'todo_android_v1';
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyASLzvLCiAP5taMfAK2EqlSKA6IuQoSOzc",
+  authDomain: "my-todo-app-8bc6f.firebaseapp.com",
+  databaseURL: "https://my-todo-app-8bc6f-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "my-todo-app-8bc6f",
+  storageBucket: "my-todo-app-8bc6f.firebasestorage.app",
+  messagingSenderId: "523916936503",
+  appId: "1:523916936503:web:57fec3008c60bd6e24c6b2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 const WEEK = ['일','월','화','수','목','금','토'];
 const now = new Date();
 const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+const TYPE_LABEL = { call:'전화콜', meet:'미팅', contract:'계약', followup:'팔로업' };
+const TYPE_ICON  = { call:'ti-phone', meet:'ti-users', contract:'ti-file-text', followup:'ti-refresh' };
+const TYPE_COLOR = { call:'call', meet:'meet', contract:'contract', followup:'followup' };
+const TYPE_BAR_COLOR = { call:'#254d7a', meet:'#c8860a', contract:'#1a7a4a', followup:'#9b59b6' };
 
 document.getElementById('date-label').textContent =
   `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${WEEK[now.getDay()]}요일)`;
 
-function loadAll() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; } }
-function saveAll(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {} }
-
-let allData = loadAll();
-if (!allData[todayKey]) allData[todayKey] = [];
-let tasks = allData[todayKey];
+let allData = {};
+let selectedType = 'call';
 let showReasonFor = null;
 let selectedPastKey = null;
 let chartInst = null;
+let currentTab = 'today';
 
-function persist() { allData[todayKey] = tasks; saveAll(allData); }
-
-function addTask() {
-  const inp = document.getElementById('task-input');
-  const text = inp.value.trim();
-  if (!text) return;
-  tasks.push({ id: Date.now(), text, status: 'pending', reason: '' });
-  inp.value = ''; persist(); renderToday(); inp.blur();
+function setSyncStatus(s) {
+  const bar = document.getElementById('sync-bar');
+  const txt = document.getElementById('sync-text');
+  bar.className = 'sync-bar ' + s;
+  txt.textContent = s === 'synced' ? '동기화 완료' : s === 'syncing' ? '동기화 중...' : '오프라인';
 }
-document.getElementById('task-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
 
-function markDone(id) {
-  const t = tasks.find(t => t.id === id); if (!t) return;
-  t.status = 'done'; t.reason = '';
+const dataRef = ref(db, 'insurance_crm');
+onValue(dataRef, snap => {
+  allData = snap.val() || {};
+  if (!allData[todayKey]) allData[todayKey] = [];
+  document.getElementById('loading-overlay').classList.add('hidden');
+  setSyncStatus('synced');
+  if (currentTab === 'today') renderToday();
+  else if (currentTab === 'past') renderPast();
+  else renderStats();
+}, () => { setSyncStatus('offline'); document.getElementById('loading-overlay').classList.add('hidden'); });
+
+async function persist() {
+  setSyncStatus('syncing');
+  try { await set(dataRef, allData); setSyncStatus('synced'); }
+  catch(e) { setSyncStatus('offline'); }
+}
+
+function getActivities() { return allData[todayKey] || []; }
+function setActivities(arr) { allData[todayKey] = arr; }
+
+// ── 타입 선택 ─────────────────────────────
+window.selectType = function(type) {
+  selectedType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  const p = document.getElementById('input-product');
+  p.placeholder = type === 'call' ? '보험료 (예: 월 5만원)' : type === 'contract' ? '상품명 (예: 종신보험)' : type === 'meet' ? '상품명 (예: 연금보험)' : '상품명 (선택)';
+};
+
+
+
+
+
+// ── 활동 추가 ─────────────────────────────
+window.addActivity = async function() {
+  const name = document.getElementById('input-name').value.trim();
+  const product = document.getElementById('input-product').value.trim();
+  const time = document.getElementById('input-time').value.trim();
+  const phone = document.getElementById('input-phone').value.trim();
+  const memo = document.getElementById('input-memo').value.trim();
+  if (!name) { alert('고객명을 입력해주세요.'); return; }
+  const acts = getActivities();
+  acts.push({ id: Date.now(), type: selectedType, name, product, time, phone, memo, status: 'pending', reason: '' });
+  setActivities(acts);
+  ['input-name','input-product','input-time','input-phone','input-memo'].forEach(id => document.getElementById(id).value = '');
+  await persist();
+};
+
+// ── 상태 변경 ─────────────────────────────
+window.markDone = async function(id) {
+  const acts = getActivities();
+  const a = acts.find(a => a.id === id); if (!a) return;
+  a.status = 'done'; a.reason = '';
   if (showReasonFor === id) showReasonFor = null;
-  persist(); renderToday();
-}
-function markFail(id) { showReasonFor = showReasonFor === id ? null : id; renderToday(); }
-function submitReason(id) {
+  setActivities(acts); await persist();
+};
+window.markFail = function(id) {
+  showReasonFor = showReasonFor === id ? null : id;
+  renderToday();
+};
+window.saveReason = async function(id) {
   const el = document.getElementById('reason-' + id);
-  const t = tasks.find(t => t.id === id); if (!t) return;
-  t.status = 'missed'; t.reason = (el?.value || '').trim() || '이유 없음';
-  showReasonFor = null; persist(); renderToday();
-}
-function undoTask(id) {
-  const t = tasks.find(t => t.id === id); if (!t) return;
-  t.status = 'pending'; t.reason = ''; persist(); renderToday();
-}
-function deleteTask(id) {
-  tasks = allData[todayKey] = tasks.filter(t => t.id !== id);
+  const acts = getActivities();
+  const a = acts.find(a => a.id === id); if (!a) return;
+  a.status = 'failed'; a.reason = (el?.value || '').trim() || '이유 없음';
+  showReasonFor = null; setActivities(acts); await persist();
+};
+window.undoActivity = async function(id) {
+  const acts = getActivities();
+  const a = acts.find(a => a.id === id); if (!a) return;
+  a.status = 'pending'; a.reason = '';
+  setActivities(acts); await persist();
+};
+window.deleteActivity = async function(id) {
+  setActivities(getActivities().filter(a => a.id !== id));
   if (showReasonFor === id) showReasonFor = null;
-  persist(); renderToday();
-}
+  await persist();
+};
 
+// ── 오늘 렌더링 ───────────────────────────
 function renderToday() {
-  const list = document.getElementById('task-list');
-  const done = tasks.filter(t => t.status === 'done').length;
-  const miss = tasks.filter(t => t.status === 'missed').length;
-  document.getElementById('s-total').textContent = tasks.length;
-  document.getElementById('s-done').textContent = done;
-  document.getElementById('s-miss').textContent = miss;
+  const acts = getActivities();
+  const total = acts.length;
+  const done  = acts.filter(a => a.status === 'done').length;
+  const fail  = acts.filter(a => a.status === 'failed').length;
+  const pend  = acts.filter(a => a.status === 'pending').length;
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-pend').textContent  = pend;
+  document.getElementById('kpi-done').textContent  = done;
+  document.getElementById('kpi-fail').textContent  = fail;
+  document.getElementById('today-goal-badge').textContent = `오늘 ${total}건`;
 
-  if (tasks.length === 0) {
-    list.innerHTML = '<div class="empty"><i class="ti ti-mood-smile"></i>할 일을 추가해 보세요!</div>';
+  const list = document.getElementById('activity-list');
+  if (acts.length === 0) {
+    list.innerHTML = '<div class="empty-state"><i class="ti ti-phone-plus"></i>오늘의 영업 활동을 추가해보세요!</div>';
     return;
   }
-  const iconMap = { pending: 'ti-clock', done: 'ti-check', missed: 'ti-x' };
-  list.innerHTML = tasks.map(t => {
-    const showReason = showReasonFor === t.id && t.status === 'pending';
-    const badge = t.status === 'done'
-      ? '<span class="badge done"><i class="ti ti-check" style="font-size:10px"></i> 완료</span>'
-      : t.status === 'missed'
-      ? '<span class="badge missed"><i class="ti ti-x" style="font-size:10px"></i> 미완료</span>'
-      : '<span class="badge pending"><i class="ti ti-clock" style="font-size:10px"></i> 진행중</span>';
-    let btns = t.status === 'pending'
-      ? `<button class="action-btn btn-complete" onclick="markDone(${t.id})"><i class="ti ti-check"></i> 완료</button>
-         <button class="action-btn btn-fail" onclick="markFail(${t.id})"><i class="ti ti-x"></i> 미완료</button>
-         <button class="action-btn btn-del" onclick="deleteTask(${t.id})" aria-label="삭제"><i class="ti ti-trash"></i></button>`
-      : `<button class="undo-link" onclick="undoTask(${t.id})"><i class="ti ti-rotate-left" style="font-size:12px;vertical-align:-1px"></i> 되돌리기</button>
-         <button class="action-btn btn-del" onclick="deleteTask(${t.id})" aria-label="삭제"><i class="ti ti-trash"></i></button>`;
+  list.innerHTML = acts.map(a => {
+    const showReason = showReasonFor === a.id && a.status === 'pending';
+    const typeColor = TYPE_COLOR[a.type] || 'call';
+    const statusBadge = a.status === 'done'
+      ? '<span class="act-status-badge done"><i class="ti ti-check" style="font-size:10px"></i> 완료</span>'
+      : a.status === 'failed'
+      ? '<span class="act-status-badge failed"><i class="ti ti-x" style="font-size:10px"></i> 무산</span>'
+      : '';
+    let btns = '';
+    if (a.status === 'pending') {
+      btns = `<button class="act-btn done-btn" onclick="markDone(${a.id})"><i class="ti ti-check"></i> 완료</button>
+              <button class="act-btn fail-btn" onclick="markFail(${a.id})"><i class="ti ti-x"></i> 무산</button>
+              <button class="act-btn del-btn" onclick="deleteActivity(${a.id})"><i class="ti ti-trash"></i></button>`;
+    } else {
+      btns = `<button class="act-btn undo-btn" onclick="undoActivity(${a.id})"><i class="ti ti-rotate-left"></i> 되돌리기</button>
+              <button class="act-btn del-btn" onclick="deleteActivity(${a.id})"><i class="ti ti-trash"></i></button>`;
+    }
     const reasonSection = showReason
-      ? `<div class="reason-box"><textarea class="reason-input" id="reason-${t.id}" placeholder="완료하지 못한 이유를 입력하세요..."></textarea><button class="reason-submit" onclick="submitReason(${t.id})">저장</button></div>`
-      : (t.reason ? `<div class="reason-display"><i class="ti ti-message-circle" style="font-size:14px;flex-shrink:0;margin-top:1px"></i>${t.reason}</div>` : '');
-    return `<div class="task-card ${t.status}">
-      <div class="task-top">
-        <div class="task-icon"><i class="ti ${iconMap[t.status]}"></i></div>
-        <span class="task-text">${t.text}</span>${badge}
+      ? `<div class="reason-box">
+           <textarea class="reason-input" id="reason-${a.id}" placeholder="무산 이유를 입력하세요 (고객 거절, 연락 불가 등)"></textarea>
+           <button class="reason-save-btn" onclick="saveReason(${a.id})">저장</button>
+         </div>`
+      : (a.reason ? `<div class="reason-display"><i class="ti ti-alert-circle" style="font-size:13px;flex-shrink:0;margin-top:1px"></i>${a.reason}</div>` : '');
+    return `<div class="act-card ${typeColor} ${a.status === 'done' || a.status === 'failed' ? 'done' : ''}">
+      <div class="act-top">
+        <span class="act-type-badge ${typeColor}"><i class="ti ${TYPE_ICON[a.type]}"></i> ${TYPE_LABEL[a.type]}</span>
+        <div class="act-body">
+          <div class="act-name">${a.name} ${a.product ? `<span style="font-size:12px;font-weight:400;color:var(--text2)">· ${a.product}</span>` : ''}</div>
+          ${a.memo ? `<div class="act-detail">${a.memo}</div>` : ''}
+          <div class="act-meta">
+            ${a.time ? `<span class="act-tag"><i class="ti ti-clock" style="font-size:11px"></i>${a.time}</span>` : ''}
+            ${a.phone ? `<span class="act-tag"><i class="ti ti-phone" style="font-size:11px"></i>${a.phone}</span>` : ''}
+            ${statusBadge}
+          </div>
+        </div>
       </div>
-      <div class="btn-row">${btns}</div>${reasonSection}
+      <div class="act-status-row">${btns}</div>
+      ${reasonSection}
     </div>`;
   }).join('');
 }
 
+// ── 과거 탭 렌더링 ────────────────────────
 function renderPast() {
   const panel = document.getElementById('past-panel');
   const pastKeys = Object.keys(allData).filter(k => k !== todayKey).sort().reverse();
-
   if (pastKeys.length === 0) {
-    panel.innerHTML = '<div class="no-data"><i class="ti ti-clock"></i>아직 과거 기록이 없어요.<br>매일 할 일을 추가하면 여기에 쌓여요!</div>';
+    panel.innerHTML = '<div class="no-data"><i class="ti ti-clock"></i>아직 과거 기록이 없어요.</div>';
     return;
   }
-
   if (!selectedPastKey || !allData[selectedPastKey]) selectedPastKey = pastKeys[0];
-
   const chipHtml = pastKeys.map(k => {
     const [,m,d] = k.split('-');
-    return `<button class="nav-date-chip ${k === selectedPastKey ? 'selected' : ''}" onclick="selectPastDay('${k}')">${parseInt(m)}/${parseInt(d)}</button>`;
+    return `<button class="date-chip ${k === selectedPastKey ? 'selected' : ''}" onclick="selectPastDay('${k}')">${parseInt(m)}/${parseInt(d)}</button>`;
   }).join('');
-
   const arr = allData[selectedPastKey] || [];
-  const d = arr.filter(t => t.status === 'done').length;
-  const m = arr.filter(t => t.status === 'missed').length;
-  const p = arr.filter(t => t.status === 'pending').length;
+  const done = arr.filter(a => a.status === 'done').length;
+  const fail = arr.filter(a => a.status === 'failed').length;
+  const pend = arr.filter(a => a.status === 'pending').length;
   const total = arr.length;
-  const dPct = total > 0 ? Math.round(d / total * 100) : 0;
-  const mPct = total > 0 ? Math.round(m / total * 100) : 0;
-  const pPct = 100 - dPct - mPct;
-
+  const dPct = total > 0 ? Math.round(done/total*100) : 0;
+  const fPct = total > 0 ? Math.round(fail/total*100) : 0;
+  const pPct = 100 - dPct - fPct;
+  const contracts = arr.filter(a => a.type === 'contract' && a.status === 'done').length;
   const [yr, mo, dy] = selectedPastKey.split('-');
   const dateObj = new Date(parseInt(yr), parseInt(mo)-1, parseInt(dy));
   const dayLabel = `${parseInt(yr)}년 ${parseInt(mo)}월 ${parseInt(dy)}일 (${WEEK[dateObj.getDay()]}요일)`;
-
   const curIdx = pastKeys.indexOf(selectedPastKey);
-  const hasPrev = curIdx < pastKeys.length - 1;
-  const hasNext = curIdx > 0;
-  const iconMap = { pending: 'ti-clock', done: 'ti-check', missed: 'ti-x' };
 
-  const taskListHtml = arr.length === 0
-    ? '<div style="color:#888;font-size:14px;padding:1rem;text-align:center">이 날은 할 일이 없었어요</div>'
-    : arr.map(t => `
-      <div class="past-task ${t.status}">
-        <div class="past-task-icon"><i class="ti ${iconMap[t.status]}"></i></div>
-        <div class="past-task-body">
-          <div class="past-task-text">${t.text}</div>
-          ${t.reason ? `<div class="past-task-reason"><i class="ti ti-message-circle" style="font-size:11px;vertical-align:-1px"></i> ${t.reason}</div>` : ''}
-        </div>
-      </div>`).join('');
+  const actHtml = arr.length === 0
+    ? '<div style="color:var(--text3);font-size:14px;padding:1rem;text-align:center">이 날은 활동 기록이 없어요</div>'
+    : arr.map(a => {
+        const typeColor = TYPE_COLOR[a.type] || 'call';
+        const sb = a.status === 'done'
+          ? '<span class="act-status-badge done" style="font-size:10px;padding:2px 8px">완료</span>'
+          : a.status === 'failed'
+          ? '<span class="act-status-badge failed" style="font-size:10px;padding:2px 8px">무산</span>'
+          : '<span style="font-size:10px;padding:2px 8px;background:var(--gold-bg);color:var(--gold);border-radius:99px;font-weight:700">예정</span>';
+        return `<div class="act-card ${typeColor}" style="margin-bottom:7px">
+          <div class="act-top">
+            <span class="act-type-badge ${typeColor}"><i class="ti ${TYPE_ICON[a.type]}"></i> ${TYPE_LABEL[a.type]}</span>
+            <div class="act-body">
+              <div class="act-name">${a.name} ${a.product ? `<span style="font-size:12px;font-weight:400;color:var(--text2)">· ${a.product}</span>` : ''}</div>
+              ${a.memo ? `<div class="act-detail">${a.memo}</div>` : ''}
+              <div class="act-meta">
+                ${a.time ? `<span class="act-tag"><i class="ti ti-clock" style="font-size:11px"></i>${a.time}</span>` : ''}
+                ${a.phone ? `<span class="act-tag"><i class="ti ti-phone" style="font-size:11px"></i>${a.phone}</span>` : ''}
+                ${sb}
+              </div>
+              ${a.reason ? `<div class="reason-display" style="margin-top:6px"><i class="ti ti-alert-circle" style="font-size:13px;flex-shrink:0"></i>${a.reason}</div>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
 
   panel.innerHTML = `
-    <div class="date-chips-wrap">
-      <button class="nav-btn" onclick="navPastDay(1)" ${!hasPrev ? 'disabled' : ''} aria-label="이전"><i class="ti ti-chevron-left"></i></button>
-      <div class="chip-scroll" id="chip-scroll">${chipHtml}</div>
-      <button class="nav-btn" onclick="navPastDay(-1)" ${!hasNext ? 'disabled' : ''} aria-label="다음"><i class="ti ti-chevron-right"></i></button>
+    <div class="date-nav">
+      <button class="nav-btn" onclick="navPastDay(1)" ${curIdx >= pastKeys.length-1 ? 'disabled' : ''}><i class="ti ti-chevron-left"></i></button>
+      <div class="chip-scroll">${chipHtml}</div>
+      <button class="nav-btn" onclick="navPastDay(-1)" ${curIdx <= 0 ? 'disabled' : ''}><i class="ti ti-chevron-right"></i></button>
     </div>
     <div class="past-day-card">
-      <div class="past-day-header">
-        <div class="past-day-title"><i class="ti ti-calendar-event"></i> ${dayLabel}</div>
-        <div class="past-badges">
-          <span class="past-badge g"><i class="ti ti-check" style="font-size:11px"></i> 완료 ${d}</span>
-          <span class="past-badge o"><i class="ti ti-x" style="font-size:11px"></i> 미완료 ${m}</span>
-          ${p > 0 ? `<span class="past-badge b"><i class="ti ti-clock" style="font-size:11px"></i> 미처리 ${p}</span>` : ''}
-        </div>
+      <div class="past-day-title"><i class="ti ti-calendar-event"></i>${dayLabel}</div>
+      <div class="past-summary-grid">
+        <div class="ps-item blue"><div class="pn">${total}</div><div class="pl">전체</div></div>
+        <div class="ps-item green"><div class="pn">${done}</div><div class="pl">완료</div></div>
+        <div class="ps-item red"><div class="pn">${fail}</div><div class="pl">무산</div></div>
+        <div class="ps-item gold"><div class="pn">${contracts}</div><div class="pl">계약</div></div>
       </div>
       ${total > 0 ? `
       <div class="past-bar">
         <div class="past-bar-done" style="width:${dPct}%"></div>
-        <div class="past-bar-miss" style="width:${mPct}%"></div>
+        <div class="past-bar-fail" style="width:${fPct}%"></div>
         <div class="past-bar-pend" style="width:${pPct}%"></div>
       </div>
       <div class="leg-row">
-        <span><span class="leg-sq" style="background:#1D9E75"></span>완료 ${dPct}%</span>
-        <span><span class="leg-sq" style="background:#D85A30"></span>미완료 ${mPct}%</span>
-        ${p > 0 ? `<span><span class="leg-sq" style="background:#B5D4F4"></span>미처리 ${pPct}%</span>` : ''}
+        <span><span class="leg-sq" style="background:var(--green)"></span>완료 ${dPct}%</span>
+        <span><span class="leg-sq" style="background:var(--red)"></span>무산 ${fPct}%</span>
+        ${pend > 0 ? `<span><span class="leg-sq" style="background:var(--sky2)"></span>예정 ${pPct}%</span>` : ''}
       </div>` : ''}
-      <div class="past-task-list">${taskListHtml}</div>
+      <div>${actHtml}</div>
     </div>`;
-
   setTimeout(() => {
-    const sel = document.querySelector('.nav-date-chip.selected');
-    if (sel) sel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    document.querySelector('.date-chip.selected')?.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
   }, 50);
 }
 
-function selectPastDay(key) { selectedPastKey = key; renderPast(); }
-function navPastDay(dir) {
-  const pastKeys = Object.keys(allData).filter(k => k !== todayKey).sort().reverse();
-  const next = pastKeys.indexOf(selectedPastKey) + dir;
-  if (next >= 0 && next < pastKeys.length) { selectedPastKey = pastKeys[next]; renderPast(); }
-}
+window.selectPastDay = k => { selectedPastKey = k; renderPast(); };
+window.navPastDay = dir => {
+  const keys = Object.keys(allData).filter(k => k !== todayKey).sort().reverse();
+  const next = keys.indexOf(selectedPastKey) + dir;
+  if (next >= 0 && next < keys.length) { selectedPastKey = keys[next]; renderPast(); }
+};
 
+// ── 통계 탭 렌더링 ────────────────────────
 function renderStats() {
-  const panel = document.getElementById('history-panel');
-  const sortedDays = Object.keys(allData).sort();
-  let totalAll = 0, doneAll = 0, missAll = 0;
-  sortedDays.forEach(k => {
-    const arr = allData[k] || [];
-    totalAll += arr.length;
-    doneAll += arr.filter(t => t.status === 'done').length;
-    missAll += arr.filter(t => t.status === 'missed').length;
+  const panel = document.getElementById('stats-panel');
+  const allKeys = Object.keys(allData).sort();
+  let totalAll=0, doneAll=0, failAll=0, contractAll=0;
+  const typeCounts = { call:0, meet:0, contract:0, followup:0 };
+  const recentKeys = allKeys.slice(-14);
+  const chartDone = recentKeys.map(k => (allData[k]||[]).filter(a=>a.status==='done').length);
+  const chartFail = recentKeys.map(k => (allData[k]||[]).filter(a=>a.status==='failed').length);
+  const chartPend = recentKeys.map(k => (allData[k]||[]).filter(a=>a.status==='pending').length);
+  const chartLabels = recentKeys.map(k => { const [,m,d]=k.split('-'); return `${parseInt(m)}/${parseInt(d)}`; });
+  allKeys.forEach(k => {
+    (allData[k]||[]).forEach(a => {
+      totalAll++;
+      if (a.status==='done') doneAll++;
+      if (a.status==='failed') failAll++;
+      if (a.type==='contract' && a.status==='done') contractAll++;
+      if (typeCounts[a.type] !== undefined) typeCounts[a.type]++;
+    });
   });
-  const finishedAll = doneAll + missAll;
-  const donePct = finishedAll > 0 ? Math.round(doneAll / finishedAll * 100) : 0;
-  const missPct = finishedAll > 0 ? 100 - donePct : 0;
-
-  const recentDays = sortedDays.slice(-14);
-  const chartLabels = recentDays.map(k => { const [,m,d] = k.split('-'); return `${parseInt(m)}/${parseInt(d)}`; });
-  const chartDone = recentDays.map(k => (allData[k]||[]).filter(t=>t.status==='done').length);
-  const chartMiss = recentDays.map(k => (allData[k]||[]).filter(t=>t.status==='missed').length);
-  const chartPend = recentDays.map(k => (allData[k]||[]).filter(t=>t.status==='pending').length);
+  const finished = doneAll + failAll;
+  const donePct = finished > 0 ? Math.round(doneAll/finished*100) : 0;
+  const failPct = finished > 0 ? 100 - donePct : 0;
+  const maxType = Math.max(...Object.values(typeCounts), 1);
 
   if (totalAll === 0) {
     panel.innerHTML = '<div class="no-data"><i class="ti ti-chart-bar"></i>아직 기록이 없어요.</div>';
@@ -410,41 +587,57 @@ function renderStats() {
   }
 
   const doneW = donePct > 0 ? Math.max(donePct, 8) : 0;
-  const isFull = missPct === 0;
+  const isFull = failPct === 0;
 
   panel.innerHTML = `
-    <div class="overall-card">
-      <div class="overall-title"><i class="ti ti-trophy"></i> 전체 누적 통계</div>
-      <div class="overall-stats">
-        <div class="ov-stat blue"><div class="n">${totalAll}</div><div class="l">전체 할일</div></div>
-        <div class="ov-stat green"><div class="n">${doneAll}</div><div class="l">완료</div></div>
-        <div class="ov-stat coral"><div class="n">${missAll}</div><div class="l">미완료</div></div>
+    <div class="stat-card">
+      <div class="stat-title"><i class="ti ti-trophy"></i> 전체 누적 성과</div>
+      <div class="stat-grid">
+        <div class="sg-item blue"><div class="gn">${totalAll}</div><div class="gl">총 활동 건수</div></div>
+        <div class="sg-item green"><div class="gn">${doneAll}</div><div class="gl">완료 건수</div></div>
+        <div class="sg-item gold"><div class="gn">${contractAll}</div><div class="gl">계약 성사</div></div>
+        <div class="sg-item red"><div class="gn">${failAll}</div><div class="gl">무산 건수</div></div>
       </div>
-      <div class="bar-labels">
-        <span class="bar-lbl-done"><i class="ti ti-check" style="font-size:12px"></i> 완료율 ${donePct}%</span>
-        <span class="bar-lbl-miss">미완료율 ${missPct}% <i class="ti ti-x" style="font-size:12px"></i></span>
-      </div>
-      <div class="bar-track">
-        <div class="bar-done-fill ${isFull ? 'full' : ''}" style="width:${doneW}%">
-          ${donePct >= 15 ? `<span class="bar-pct-text">${donePct}%</span>` : ''}
+      <div class="big-bar-wrap">
+        <div class="big-bar-labels">
+          <span class="big-bar-done-lbl"><i class="ti ti-check" style="font-size:12px"></i> 완료율 ${donePct}%</span>
+          <span class="big-bar-fail-lbl">무산율 ${failPct}% <i class="ti ti-x" style="font-size:12px"></i></span>
         </div>
-        ${!isFull ? '<div class="bar-miss-fill"></div>' : ''}
+        <div class="big-bar-track">
+          <div class="big-bar-done ${isFull?'full':''}" style="width:${doneW}%">
+            ${donePct >= 15 ? `<span class="big-bar-pct">${donePct}%</span>` : ''}
+          </div>
+          ${!isFull ? '<div class="big-bar-fail"></div>' : ''}
+        </div>
       </div>
       <div class="leg-row" style="margin-top:8px">
-        <span><span class="leg-sq" style="background:#1D9E75"></span>완료 (${doneAll}개)</span>
-        <span><span class="leg-sq" style="background:#D85A30"></span>미완료 (${missAll}개)</span>
-        ${totalAll - finishedAll > 0 ? `<span><span class="leg-sq" style="background:#B5D4F4"></span>진행중 (${totalAll-finishedAll}개)</span>` : ''}
+        <span><span class="leg-sq" style="background:var(--green)"></span>완료 (${doneAll}건)</span>
+        <span><span class="leg-sq" style="background:var(--red)"></span>무산 (${failAll}건)</span>
+        ${totalAll-finished > 0 ? `<span><span class="leg-sq" style="background:var(--sky2)"></span>예정 (${totalAll-finished}건)</span>` : ''}
       </div>
     </div>
-    <div class="chart-card">
-      <div class="chart-title"><i class="ti ti-chart-bar"></i> 최근 ${chartLabels.length}일 현황</div>
-      <div class="chart-legend">
-        <span><span class="leg-sq" style="background:#1D9E75"></span>완료</span>
-        <span><span class="leg-sq" style="background:#D85A30"></span>미완료</span>
-        <span><span class="leg-sq" style="background:#B5D4F4"></span>진행중</span>
+
+    <div class="stat-card">
+      <div class="stat-title"><i class="ti ti-category"></i> 활동 유형별 분포</div>
+      <div class="type-breakdown">
+        ${[['call','ti-phone','#254d7a'],['meet','ti-users','#c8860a'],['contract','ti-file-text','#1a7a4a'],['followup','ti-refresh','#9b59b6']].map(([t,ic,cl])=>`
+        <div class="tb-row">
+          <div class="tb-label"><i class="ti ${ic}" style="font-size:13px;color:${cl}"></i> ${TYPE_LABEL[t]}</div>
+          <div class="tb-bar"><div class="tb-fill" style="width:${Math.round(typeCounts[t]/maxType*100)}%;background:${cl}"></div></div>
+          <div class="tb-count">${typeCounts[t]}건</div>
+        </div>`).join('')}
       </div>
-      <div style="position:relative;width:100%;height:${Math.max(160, chartLabels.length*20)}px;">
-        <canvas id="daily-chart" role="img" aria-label="날짜별 할 일 통계">날짜별 할 일 통계 차트</canvas>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title"><i class="ti ti-chart-bar"></i> 최근 ${chartLabels.length}일 활동 현황</div>
+      <div class="leg-row">
+        <span><span class="leg-sq" style="background:var(--green)"></span>완료</span>
+        <span><span class="leg-sq" style="background:var(--red)"></span>무산</span>
+        <span><span class="leg-sq" style="background:var(--sky2)"></span>예정</span>
+      </div>
+      <div style="position:relative;width:100%;height:${Math.max(160,chartLabels.length*20)}px;">
+        <canvas id="daily-chart" role="img" aria-label="날짜별 영업 활동 통계">날짜별 영업 통계</canvas>
       </div>
     </div>`;
 
@@ -457,33 +650,33 @@ function renderStats() {
       data: {
         labels: chartLabels,
         datasets: [
-          { label: '완료', data: chartDone, backgroundColor: '#1D9E75', borderRadius: 6, borderSkipped: false },
-          { label: '미완료', data: chartMiss, backgroundColor: '#D85A30', borderRadius: 6, borderSkipped: false },
-          { label: '진행중', data: chartPend, backgroundColor: '#B5D4F4', borderRadius: 6, borderSkipped: false }
+          { label:'완료', data:chartDone, backgroundColor:'#1a7a4a', borderRadius:6, borderSkipped:false },
+          { label:'무산', data:chartFail, backgroundColor:'#b03030', borderRadius:6, borderSkipped:false },
+          { label:'예정', data:chartPend, backgroundColor:'#90bfe8', borderRadius:6, borderSkipped:false }
         ]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { stacked: true, grid: { display: false }, ticks: { color: '#888', font: { size: 10 }, autoSkip: false, maxRotation: 45 } },
-          y: { stacked: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#888', font: { size: 10 }, stepSize: 1 }, beginAtZero: true }
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          x:{ stacked:true, grid:{display:false}, ticks:{color:'#8a95a3',font:{size:10},autoSkip:false,maxRotation:45} },
+          y:{ stacked:true, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#8a95a3',font:{size:10},stepSize:1}, beginAtZero:true }
         }
       }
     });
   }, 100);
 }
 
-function switchTab(tab) {
+// ── 탭 전환 ──────────────────────────────
+window.switchTab = function(tab) {
+  currentTab = tab;
   ['today','past','stats'].forEach(t => {
     document.getElementById('panel-' + t).classList.toggle('active', t === tab);
     document.getElementById('tab-' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'past') renderPast();
   if (tab === 'stats') renderStats();
-}
-
-renderToday();
+};
 </script>
 </body>
 </html>
