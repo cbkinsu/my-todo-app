@@ -200,6 +200,41 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
 
 .panel { display: none; }
 .panel.active { display: block; }
+
+/* ── 캘린더 ── */
+.cal-wrap { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-xl); padding: 16px; margin-bottom: 13px; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-nav-btn { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--gray-bg); color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+.cal-nav-btn:active { background: var(--sky); }
+.cal-month-label { font-size: 17px; font-weight: 700; color: var(--navy); }
+.cal-week-header { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px; }
+.cal-week-header span { text-align: center; font-size: 11px; font-weight: 700; color: var(--text3); padding: 4px 0; }
+.cal-week-header span:first-child { color: #e05555; }
+.cal-week-header span:last-child { color: #4488cc; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+.cal-cell { border-radius: 12px; padding: 5px 3px 6px; cursor: pointer; min-height: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative; }
+.cal-cell:active { background: var(--sky); }
+.cal-cell.other-month { opacity: .3; pointer-events: none; }
+.cal-cell.today .cal-day-num { background: var(--navy); color: var(--white); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.cal-cell.selected { background: var(--sky); }
+.cal-cell.selected .cal-day-num { background: var(--navy); color: var(--white); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.cal-day-num { font-size: 13px; font-weight: 600; color: var(--text); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.cal-cell.sunday .cal-day-num { color: #e05555; }
+.cal-cell.saturday .cal-day-num { color: #4488cc; }
+.cal-cell.today.sunday .cal-day-num,
+.cal-cell.selected.sunday .cal-day-num { background: #e05555; color: var(--white); border-radius: 50%; }
+.cal-cell.today.saturday .cal-day-num,
+.cal-cell.selected.saturday .cal-day-num { background: #4488cc; color: var(--white); border-radius: 50%; }
+.cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; max-width: 36px; }
+.cal-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.cal-dot.call { background: #254d7a; }
+.cal-dot.meet { background: #c8860a; }
+.cal-dot.contract { background: #1a7a4a; }
+.cal-dot.followup { background: #9b59b6; }
+
+.cal-day-panel { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-xl); padding: 16px; margin-bottom: 13px; }
+.cal-day-panel-title { font-size: 15px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px; margin-bottom: 13px; }
+
 </style>
 </head>
 <body>
@@ -224,7 +259,10 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
       <div class="header-badge" id="today-goal-badge">오늘 0건</div>
     </div>
     <div class="tab-btns">
-      <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">
+      <button class="tab-btn active" id="tab-cal" onclick="switchTab('cal')">
+        <i class="ti ti-calendar" style="font-size:13px"></i> 캘린더
+      </button>
+      <button class="tab-btn" id="tab-today" onclick="switchTab('today')">
         <i class="ti ti-calendar-today" style="font-size:13px"></i> 오늘
       </button>
       <button class="tab-btn" id="tab-past" onclick="switchTab('past')">
@@ -237,7 +275,23 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
   </div>
 
   <!-- 오늘 탭 -->
-  <div id="panel-today" class="panel active">
+  <!-- 캘린더 탭 -->
+  <div id="panel-cal" class="panel active">
+    <div class="cal-wrap">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrevMonth()"><i class="ti ti-chevron-left"></i></button>
+        <div class="cal-month-label" id="cal-month-label"></div>
+        <button class="cal-nav-btn" onclick="calNextMonth()"><i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div class="cal-week-header">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+    <div class="cal-day-panel" id="cal-day-panel" style="display:none;"></div>
+  </div>
+
+  <div id="panel-today" class="panel">
     <div class="kpi-row">
       <div class="kpi blue"><div class="kn" id="kpi-total">0</div><div class="kl">전체</div></div>
       <div class="kpi gold"><div class="kn" id="kpi-pend">0</div><div class="kl">예정</div></div>
@@ -261,15 +315,19 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
         <input type="text" id="input-name" placeholder="고객명" maxlength="20" />
       </div>
       <div class="form-row">
-        <input type="text" id="input-phone" placeholder="연락처 (선택)" maxlength="20" />
+        <input type="text" id="input-phone" placeholder="연락처 (선택)" maxlength="13" oninput="formatPhone(this)" inputmode="numeric" />
       </div>
       <div class="form-row" id="row-birth">
-        <input type="text" id="input-birth" placeholder="생년월일 (예: 19850315)" maxlength="8"
-          oninput="calcAge()" style="flex:1" />
+        <input type="text" id="input-birth" placeholder="생년월일 (예: 19850315)" maxlength="10"
+          oninput="formatBirth(this)" inputmode="numeric" style="flex:1" />
         <div id="age-display" style="display:flex;align-items:center;justify-content:center;min-width:64px;height:42px;border-radius:99px;background:var(--gold-bg);color:var(--gold);font-size:14px;font-weight:700;border:1.5px solid var(--gold-light);flex-shrink:0;padding:0 12px;white-space:nowrap;"></div>
       </div>
-      <div class="form-row">
-        <input type="text" id="input-address" placeholder="주소 (선택)" maxlength="60" />
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
+        <div style="display:flex;gap:6px;">
+          <select id="input-sido" style="flex:1;height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;cursor:pointer;"></select>
+          <select id="input-sigungu" disabled style="flex:1;height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;cursor:pointer;opacity:.6;"><option value="">시/군/구 선택</option></select>
+        </div>
+        <input type="text" id="input-address" placeholder="나머지 주소 (읍/면/동, 번지 등)" maxlength="60" style="height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;width:100%;" />
       </div>
       <div class="form-row">
         <input type="text" id="input-product" placeholder="보험료 / 상품명 (선택)" maxlength="20" />
@@ -304,12 +362,18 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
       <input type="hidden" id="edit-id" />
       <div style="display:flex;flex-direction:column;gap:8px;">
         <input type="text" id="edit-name"    placeholder="고객명"                   maxlength="20" class="edit-input" />
-        <input type="text" id="edit-phone"   placeholder="연락처"                   maxlength="20" class="edit-input" />
+        <input type="text" id="edit-phone"   placeholder="연락처"                   maxlength="13" class="edit-input" oninput="formatPhone(this)" inputmode="numeric" />
         <div style="display:flex;gap:8px;" id="edit-birth-row">
-          <input type="text" id="edit-birth" placeholder="생년월일 (예: 19850315)"  maxlength="8"  oninput="calcEditAge()" class="edit-input" style="flex:1;" />
+          <input type="text" id="edit-birth" placeholder="생년월일 (예: 19850315)"  maxlength="10" class="edit-input" oninput="formatBirth(this, true)" inputmode="numeric" style="flex:1;" />
           <div id="edit-age-disp" style="display:flex;align-items:center;justify-content:center;min-width:60px;height:42px;border-radius:99px;background:var(--gold-bg);color:var(--gold);font-size:14px;font-weight:700;border:1.5px solid var(--gold-light);padding:0 10px;white-space:nowrap;flex-shrink:0;"></div>
         </div>
-        <input type="text" id="edit-address" placeholder="주소"                    maxlength="60" class="edit-input" />
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:6px;">
+            <select id="edit-sido" style="flex:1;height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;cursor:pointer;"></select>
+            <select id="edit-sigungu" disabled style="flex:1;height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;cursor:pointer;opacity:.6;"><option value="">시/군/구 선택</option></select>
+          </div>
+          <input type="text" id="edit-address" placeholder="나머지 주소" maxlength="60" class="edit-input" />
+        </div>
         <input type="text" id="edit-product" placeholder="보험료 / 상품명"         maxlength="20" class="edit-input" />
         <input type="text" id="edit-time"    placeholder="시간"                     maxlength="20" class="edit-input" />
         <textarea id="edit-memo" placeholder="메모" maxlength="100" class="edit-input" style="height:70px;border-radius:16px;resize:none;"></textarea>
@@ -362,7 +426,7 @@ let selectedType = 'call';
 let showReasonFor = null;
 let selectedPastKey = null;
 let chartInst = null;
-let currentTab = 'today';
+let currentTab = 'cal';
 
 function setSyncStatus(s) {
   const bar = document.getElementById('sync-bar');
@@ -377,7 +441,8 @@ onValue(dataRef, snap => {
   if (!allData[todayKey]) allData[todayKey] = [];
   document.getElementById('loading-overlay').classList.add('hidden');
   setSyncStatus('synced');
-  if (currentTab === 'today') renderToday();
+  if (currentTab === 'cal') renderCalendar();
+  else if (currentTab === 'today') renderToday();
   else if (currentTab === 'past') renderPast();
   else renderStats();
 }, () => { setSyncStatus('offline'); document.getElementById('loading-overlay').classList.add('hidden'); });
@@ -405,7 +470,16 @@ window.openEdit = function(id) {
   document.getElementById('edit-name').value    = a.name    || '';
   document.getElementById('edit-phone').value   = a.phone   || '';
   document.getElementById('edit-birth').value   = a.birth   || '';
-  document.getElementById('edit-address').value = a.address || '';
+  const _parts = (a.address || '').split(' ');
+  const _eSido = SIDO_LIST.find(s => _parts[0] === s) || '';
+  const _eSigungu = _eSido && SIGUNGU[_eSido] ? (SIGUNGU[_eSido].find(s => _parts[1] === s) || '') : '';
+  const _eDetail = _parts.slice(_eSido ? (_eSigungu ? 2 : 1) : 0).join(' ');
+  document.getElementById('edit-sido').value = _eSido;
+  document.getElementById('edit-sigungu').innerHTML = buildSigunguOptions(_eSido);
+  document.getElementById('edit-sigungu').disabled = !_eSido;
+  document.getElementById('edit-sigungu').style.opacity = _eSido ? '1' : '.6';
+  if (_eSigungu) document.getElementById('edit-sigungu').value = _eSigungu;
+  document.getElementById('edit-address').value = _eDetail;
   document.getElementById('edit-product').value = a.product || '';
   document.getElementById('edit-time').value    = a.time    || '';
   document.getElementById('edit-memo').value    = a.memo    || '';
@@ -420,42 +494,81 @@ window.setEditType = function(type) {
   document.querySelectorAll('#edit-type-btns .type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
 };
 
-window.calcEditAge = function() {
-  const val = document.getElementById('edit-birth').value.replace(/[^0-9]/g, '');
-  const disp = document.getElementById('edit-age-disp');
-  if (val.length !== 8) { disp.textContent = ''; return; }
-  const y=parseInt(val.slice(0,4)), m=parseInt(val.slice(4,6))-1, d=parseInt(val.slice(6,8));
-  if (isNaN(y)||isNaN(m)||isNaN(d)||m<0||m>11||d<1||d>31) { disp.textContent=''; return; }
-  const today = new Date();
-  let age = today.getFullYear() - y;
-  if (today.getMonth()<m||(today.getMonth()===m&&today.getDate()<d)) age--;
-  if (age<0||age>120) { disp.textContent=''; return; }
-  disp.textContent = age + '세';
-};
+window.calcEditAge = function() {};
 
 window.closeEdit = function() {
   document.getElementById('edit-overlay').style.display = 'none';
 };
 
 window.saveEdit = async function() {
-  const id = parseInt(document.getElementById('edit-id').value);
-  const acts = getActivities();
+  const rawId = document.getElementById('edit-id').value;
+  const isCalEdit = rawId.includes('|');
+  const id = parseInt(isCalEdit ? rawId.split('|')[0] : rawId);
+  const editKey = isCalEdit ? rawId.split('|')[1] : null;
+  const acts = isCalEdit ? (allData[editKey]||[]) : getActivities();
   const a = acts.find(a => a.id === id);
   if (!a) return;
   a.type    = editType;
   a.name    = document.getElementById('edit-name').value.trim();
   a.phone   = document.getElementById('edit-phone').value.trim();
   a.birth   = document.getElementById('edit-birth').value.trim();
-  a.address = document.getElementById('edit-address').value.trim();
+  const _eS = document.getElementById('edit-sido').value;
+  const _eSg = document.getElementById('edit-sigungu').value;
+  const _eD = document.getElementById('edit-address').value.trim();
+  a.address = [_eS, _eSg, _eD].filter(Boolean).join(' ');
   a.product = document.getElementById('edit-product').value.trim();
   a.time    = document.getElementById('edit-time').value.trim();
   a.memo    = document.getElementById('edit-memo').value.trim();
   if (!a.name) { alert('고객명을 입력해주세요.'); return; }
-  setActivities(acts);
+  if (isCalEdit) {
+    allData[editKey] = acts;
+  } else {
+    setActivities(acts);
+    renderToday();
+  }
   closeEdit();
-  renderToday();
+  if (isCalEdit && calSelectedKey) renderCalDayPanel(calSelectedKey);
+  if (isCalEdit) renderCalendar();
   await persist();
 };
+
+
+const SIDO_LIST = ['서울특별시','부산광역시','대구광역시','인천광역시','광주광역시','대전광역시','울산광역시','세종특별자치시','경기도','강원특별자치도','충청북도','충청남도','전라북도','전라남도','경상북도','경상남도','제주특별자치도'];
+
+const SIGUNGU = {
+  '서울특별시': ['종로구','중구','용산구','성동구','광진구','동대문구','중랑구','성북구','강북구','도봉구','노원구','은평구','서대문구','마포구','양천구','강서구','구로구','금천구','영등포구','동작구','관악구','서초구','강남구','송파구','강동구'],
+  '부산광역시': ['중구','서구','동구','영도구','부산진구','동래구','남구','북구','해운대구','사하구','금정구','강서구','연제구','수영구','사상구','기장군'],
+  '대구광역시': ['중구','동구','서구','남구','북구','수성구','달서구','달성군','군위군'],
+  '인천광역시': ['중구','동구','미추홀구','연수구','남동구','부평구','계양구','서구','강화군','옹진군'],
+  '광주광역시': ['동구','서구','남구','북구','광산구'],
+  '대전광역시': ['동구','중구','서구','유성구','대덕구'],
+  '울산광역시': ['중구','남구','동구','북구','울주군'],
+  '세종특별자치시': ['세종시'],
+  '경기도': ['수원시','성남시','의정부시','안양시','부천시','광명시','평택시','동두천시','안산시','고양시','과천시','구리시','남양주시','오산시','시흥시','군포시','의왕시','하남시','용인시','파주시','이천시','안성시','김포시','화성시','광주시','양주시','포천시','여주시','연천군','가평군','양평군'],
+  '강원특별자치도': ['춘천시','원주시','강릉시','동해시','태백시','속초시','삼척시','홍천군','횡성군','영월군','평창군','정선군','철원군','화천군','양구군','인제군','고성군','양양군'],
+  '충청북도': ['청주시','충주시','제천시','보은군','옥천군','영동군','증평군','진천군','괴산군','음성군','단양군'],
+  '충청남도': ['천안시','공주시','보령시','아산시','서산시','논산시','계룡시','당진시','금산군','부여군','서천군','청양군','홍성군','예산군','태안군'],
+  '전라북도': ['전주시','군산시','익산시','정읍시','남원시','김제시','완주군','진안군','무주군','장수군','임실군','순창군','고창군','부안군'],
+  '전라남도': ['목포시','여수시','순천시','나주시','광양시','담양군','곡성군','구례군','고흥군','보성군','화순군','장흥군','강진군','해남군','영암군','무안군','함평군','영광군','장성군','완도군','진도군','신안군'],
+  '경상북도': ['포항시','경주시','김천시','안동시','구미시','영주시','영천시','상주시','문경시','경산시','의성군','청송군','영양군','영덕군','청도군','고령군','성주군','칠곡군','예천군','봉화군','울진군','울릉군'],
+  '경상남도': ['창원시','진주시','통영시','사천시','김해시','밀양시','거제시','양산시','의령군','함안군','창녕군','고성군','남해군','하동군','산청군','함양군','거창군','합천군'],
+  '제주특별자치도': ['제주시','서귀포시']
+};
+
+function buildSidoOptions() {
+  return '<option value="">시/도 선택</option>' + SIDO_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+function buildSigunguOptions(sido) {
+  if (!sido || !SIGUNGU[sido]) return '<option value="">시/군/구 선택</option>';
+  return '<option value="">시/군/구 선택</option>' + (SIGUNGU[sido] || []).map(s => `<option value="${s}">${s}</option>`).join('');
+}
+function onSidoChange(sidoId, sigunguId) {
+  const sidoSel = document.getElementById(sidoId);
+  const sigunguSel = document.getElementById(sigunguId);
+  sigunguSel.innerHTML = buildSigunguOptions(sidoSel.value);
+  sigunguSel.disabled = !sidoSel.value;
+  sigunguSel.style.opacity = sidoSel.value ? '1' : '.6';
+}
 
 window.toggleAddForm = function() {
   const body = document.getElementById('add-form-body');
@@ -470,18 +583,51 @@ window.selectType = function(type) {
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
 };
 
-window.calcAge = function() {
-  const val = document.getElementById('input-birth').value.replace(/[^0-9]/g, '');
-  const disp = document.getElementById('age-display');
-  if (val.length !== 8) { disp.textContent = ''; return; }
-  const y = parseInt(val.slice(0,4)), m = parseInt(val.slice(4,6))-1, d = parseInt(val.slice(6,8));
-  if (isNaN(y)||isNaN(m)||isNaN(d)||m<0||m>11||d<1||d>31) { disp.textContent = ''; return; }
+function calcAgeFromDigits(digits, dispEl) {
+  if (digits.length < 8) { dispEl.textContent = ''; return; }
+  const y = parseInt(digits.slice(0,4)), m = parseInt(digits.slice(4,6))-1, d = parseInt(digits.slice(6,8));
+  if (isNaN(y)||isNaN(m)||isNaN(d)||m<0||m>11||d<1||d>31) { dispEl.textContent = ''; return; }
   const today = new Date();
   let age = today.getFullYear() - y;
   if (today.getMonth() < m || (today.getMonth() === m && today.getDate() < d)) age--;
-  if (age < 0 || age > 120) { disp.textContent = ''; return; }
-  disp.textContent = age + '세';
+  if (age < 0 || age > 120) { dispEl.textContent = ''; return; }
+  dispEl.textContent = age + '세';
+}
+
+window.formatPhone = function(el) {
+  const digits = el.value.replace(/[^0-9]/g, '').slice(0, 11);
+  let formatted = digits;
+  if (digits.length <= 3) {
+    formatted = digits;
+  } else if (digits.startsWith('02')) {
+    if (digits.length <= 6) formatted = digits.slice(0,2) + '-' + digits.slice(2);
+    else if (digits.length <= 9) formatted = digits.slice(0,2) + '-' + digits.slice(2,6) + '-' + digits.slice(6);
+    else formatted = digits.slice(0,2) + '-' + digits.slice(2,6) + '-' + digits.slice(6);
+  } else {
+    if (digits.length <= 6) formatted = digits.slice(0,3) + '-' + digits.slice(3);
+    else if (digits.length <= 10) formatted = digits.slice(0,3) + '-' + digits.slice(3,6) + '-' + digits.slice(6);
+    else formatted = digits.slice(0,3) + '-' + digits.slice(3,7) + '-' + digits.slice(7);
+  }
+  el.value = formatted;
 };
+
+window.formatBirth = function(el, isEdit, customDispId) {
+  const digits = el.value.replace(/[^0-9]/g, '').slice(0, 8);
+  let formatted = digits;
+  if (digits.length <= 4) {
+    formatted = digits;
+  } else if (digits.length <= 6) {
+    formatted = digits.slice(0,4) + '-' + digits.slice(4);
+  } else {
+    formatted = digits.slice(0,4) + '-' + digits.slice(4,6) + '-' + digits.slice(6);
+  }
+  el.value = formatted;
+  const dispId = customDispId || (isEdit ? 'edit-age-disp' : 'age-display');
+  const dispEl = document.getElementById(dispId);
+  if (dispEl) calcAgeFromDigits(digits, dispEl);
+};
+
+window.calcAge = function() {};
 
 
 
@@ -494,7 +640,10 @@ window.addActivity = async function() {
   const time = document.getElementById('input-time').value.trim();
   const phone = document.getElementById('input-phone').value.trim();
   const memo = document.getElementById('input-memo').value.trim();
-  const address = document.getElementById('input-address').value.trim();
+  const _sido = document.getElementById('input-sido').value;
+  const _sigungu = document.getElementById('input-sigungu').value;
+  const _addrDetail = document.getElementById('input-address').value.trim();
+  const address = [_sido, _sigungu, _addrDetail].filter(Boolean).join(' ');
   const birth = document.getElementById('input-birth').value.trim();
   if (!name) { alert('고객명을 입력해주세요.'); return; }
   const acts = getActivities();
@@ -502,6 +651,10 @@ window.addActivity = async function() {
   setActivities(acts);
   ['input-name','input-product','input-time','input-phone','input-address','input-memo','input-birth'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('age-display').textContent = '';
+  document.getElementById('input-sido').value = '';
+  document.getElementById('input-sigungu').innerHTML = '<option value="">시/군/구 선택</option>';
+  document.getElementById('input-sigungu').disabled = true;
+  document.getElementById('input-sigungu').style.opacity = '.6';
   renderToday(); await persist();
 };
 
@@ -568,7 +721,7 @@ function buildCard(a) {
           <div class="act-name">${a.name} ${a.product ? `<span style="font-size:12px;font-weight:400;color:var(--text2)">· ${a.product}</span>` : ''}</div>
           ${a.memo ? `<div class="act-detail">${a.memo}</div>` : ''}
           <div class="act-meta">
-            ${a.birth && a.birth.length === 8 ? (() => { const y=parseInt(a.birth.slice(0,4)),m=parseInt(a.birth.slice(4,6))-1,d=parseInt(a.birth.slice(6,8)); const today=new Date(); let age=today.getFullYear()-y; if(today.getMonth()<m||(today.getMonth()===m&&today.getDate()<d))age--; return `<span class="act-tag" style="background:var(--gold-bg);color:var(--gold);font-weight:700;"><i class="ti ti-cake" style="font-size:11px"></i>${a.birth.slice(0,4)}.${a.birth.slice(4,6)}.${a.birth.slice(6,8)} · ${age}세</span>`; })() : ''}
+            ${(()=>{ if(!a.birth) return ''; const dg=a.birth.replace(/[^0-9]/g,''); if(dg.length<8) return ''; const y=parseInt(dg.slice(0,4)),m=parseInt(dg.slice(4,6))-1,d=parseInt(dg.slice(6,8)); const today=new Date(); let age=today.getFullYear()-y; if(today.getMonth()<m||(today.getMonth()===m&&today.getDate()<d))age--; if(age<0||age>120) return ''; return `<span class="act-tag" style="background:var(--gold-bg);color:var(--gold);font-weight:700;"><i class="ti ti-cake" style="font-size:11px"></i>${dg.slice(0,4)}-${dg.slice(4,6)}-${dg.slice(6,8)} · ${age}세</span>`; })()}
             ${a.time ? `<span class="act-tag"><i class="ti ti-clock" style="font-size:11px"></i>${a.time}</span>` : ''}
             ${a.phone ? `<span class="act-tag"><i class="ti ti-phone" style="font-size:11px"></i>${a.phone}</span>` : ''}
             ${a.address ? `<span class="act-tag"><i class="ti ti-map-pin" style="font-size:11px"></i>${a.address}</span>` : ''}
@@ -834,15 +987,356 @@ function renderStats() {
 }
 
 // ── 탭 전환 ──────────────────────────────
+
+// ── 캘린더 ───────────────────────────────
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-based
+let calSelectedKey = null;
+
+const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function renderCalendar() {
+  const today = new Date();
+  const todayKey2 = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+  document.getElementById('cal-month-label').textContent =
+    `${calYear}년 ${MONTH_NAMES[calMonth]}`;
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
+  const prevLastDate = new Date(calYear, calMonth, 0).getDate();
+
+  const grid = document.getElementById('cal-grid');
+  let cells = '';
+
+  // 이전 달 빈 칸
+  for (let i = 0; i < firstDay; i++) {
+    const d = prevLastDate - firstDay + 1 + i;
+    cells += `<div class="cal-cell other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+
+  // 이번 달
+  for (let d = 1; d <= lastDate; d++) {
+    const key = dateKey(calYear, calMonth, d);
+    const dayOfWeek = new Date(calYear, calMonth, d).getDay();
+    const acts = allData[key] || [];
+    const isToday = key === todayKey2;
+    const isSelected = key === calSelectedKey;
+
+    let cls = 'cal-cell';
+    if (isToday) cls += ' today';
+    if (isSelected) cls += ' selected';
+    if (dayOfWeek === 0) cls += ' sunday';
+    if (dayOfWeek === 6) cls += ' saturday';
+
+    // 유형별 점 (중복 제거, 최대 4개)
+    const types = [...new Set(acts.map(a => a.type))].slice(0, 4);
+    const dots = types.map(t => `<div class="cal-dot ${t}"></div>`).join('');
+
+    cells += `<div class="${cls}" onclick="calSelectDay('${key}')">
+      <div class="cal-day-num">${d}</div>
+      ${dots ? `<div class="cal-dots">${dots}</div>` : ''}
+    </div>`;
+  }
+
+  // 다음 달 빈 칸
+  const totalCells = firstDay + lastDate;
+  const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let i = 1; i <= remaining; i++) {
+    cells += `<div class="cal-cell other-month"><div class="cal-day-num">${i}</div></div>`;
+  }
+
+  grid.innerHTML = cells;
+
+  // 선택된 날 패널 렌더링
+  if (calSelectedKey) renderCalDayPanel(calSelectedKey);
+}
+
+window.calPrevMonth = function() {
+  if (calMonth === 0) { calYear--; calMonth = 11; } else { calMonth--; }
+  renderCalendar();
+};
+window.calNextMonth = function() {
+  if (calMonth === 11) { calYear++; calMonth = 0; } else { calMonth++; }
+  renderCalendar();
+};
+
+window.calSelectDay = function(key) {
+  calSelectedKey = key;
+  renderCalendar();
+};
+
+function renderCalDayPanel(key) {
+  const panel = document.getElementById('cal-day-panel');
+  panel.style.display = '';
+  const [yr, mo, dy] = key.split('-');
+  const dateObj = new Date(parseInt(yr), parseInt(mo)-1, parseInt(dy));
+  const dayLabel = `${parseInt(yr)}년 ${parseInt(mo)}월 ${parseInt(dy)}일 (${WEEK[dateObj.getDay()]}요일)`;
+  const today = new Date();
+  const todayKey2 = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  const isFuture = key >= todayKey2;
+
+  if (!allData[key]) allData[key] = [];
+  const acts = allData[key];
+
+  // 활동 추가 폼 (미래/오늘만)
+  const addForm = `
+    <div id="cal-add-form-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:10px;" onclick="toggleCalForm()">
+        <span style="font-size:13px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:6px;"><i class="ti ti-plus-circle"></i> 활동 추가</span>
+        <i class="ti ti-chevron-down" id="cal-form-arrow" style="font-size:16px;color:var(--navy3);transition:transform 0.25s;transform:rotate(-90deg);"></i>
+      </div>
+      <div id="cal-add-body" style="display:none;">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;" id="cal-type-btns">
+          <button class="type-btn active" data-type="call" onclick="setCalType('call')"><i class="ti ti-phone"></i> 전화콜</button>
+          <button class="type-btn" data-type="meet" onclick="setCalType('meet')"><i class="ti ti-users"></i> 미팅</button>
+          <button class="type-btn" data-type="contract" onclick="setCalType('contract')"><i class="ti ti-file-text"></i> 계약</button>
+          <button class="type-btn" data-type="followup" onclick="setCalType('followup')"><i class="ti ti-refresh"></i> 팔로업</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <input type="text" id="cal-input-name" placeholder="고객명" maxlength="20" style="height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;width:100%;" />
+          <input type="text" id="cal-input-phone" placeholder="연락처 (선택)" maxlength="13" oninput="formatPhone(this)" inputmode="numeric" style="height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;width:100%;" />
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="cal-input-birth" placeholder="생년월일 (선택)" maxlength="10" oninput="formatBirth(this, false, 'cal-age-disp')" inputmode="numeric" style="flex:1;height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;" />
+            <div id="cal-age-disp" style="display:flex;align-items:center;justify-content:center;min-width:60px;height:42px;border-radius:99px;background:var(--gold-bg);color:var(--gold);font-size:14px;font-weight:700;border:1.5px solid var(--gold-light);padding:0 10px;white-space:nowrap;flex-shrink:0;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;gap:6px;">
+              <select id="cal-input-sido" style="flex:1;height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;cursor:pointer;"></select>
+              <select id="cal-input-sigungu" disabled style="flex:1;height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;cursor:pointer;opacity:.6;"><option value="">시/군/구</option></select>
+            </div>
+            <input type="text" id="cal-input-address" placeholder="나머지 주소 (선택)" maxlength="60" style="height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;width:100%;" />
+          </div>
+          <input type="text" id="cal-input-product" placeholder="보험료 / 상품명 (선택)" maxlength="20" style="height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;width:100%;" />
+          <input type="text" id="cal-input-time" placeholder="시간 (예: 오후 2시)" maxlength="20" style="height:42px;border-radius:99px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:0 14px;font-size:14px;outline:none;font-family:inherit;width:100%;" />
+          <textarea id="cal-input-memo" placeholder="메모 (선택)" maxlength="100" style="height:64px;border-radius:16px;border:1.5px solid var(--border);background:var(--gray-bg);color:var(--text);padding:10px 14px;font-size:14px;outline:none;font-family:inherit;width:100%;resize:none;"></textarea>
+        </div>
+        <button onclick="calAddActivity()" style="width:100%;margin-top:10px;height:44px;border-radius:99px;border:none;background:var(--navy);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-plus"></i> 등록</button>
+      </div>
+    </div>`;
+
+  const groups = [
+    { type:'call', label:'전화콜', icon:'ti-phone' },
+    { type:'meet', label:'미팅', icon:'ti-users' },
+    { type:'contract', label:'계약', icon:'ti-file-text' },
+    { type:'followup', label:'팔로업', icon:'ti-refresh' },
+  ];
+  const groupColors = { call:'#254d7a', meet:'#c8860a', contract:'#1a7a4a', followup:'#9b59b6' };
+  const groupBg = { call:'#e8f2fb', meet:'#fef8ec', contract:'#eaf5ef', followup:'#f3eafd' };
+
+  const actHtml = acts.length === 0
+    ? '<div style="color:var(--text3);font-size:14px;padding:1.5rem;text-align:center;border:1.5px dashed var(--border);border-radius:20px;">이 날의 활동이 없어요</div>'
+    : groups.map(g => {
+        const items = acts.filter(a => a.type === g.type);
+        if (!items.length) return '';
+        const cardsHtml = items.map(a => buildCalCard(a, key)).join('');
+        return `<div style="margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;padding:7px 13px;background:${groupBg[g.type]};border-radius:99px;">
+            <i class="ti ${g.icon}" style="font-size:14px;color:${groupColors[g.type]}"></i>
+            <span style="font-size:12px;font-weight:700;color:${groupColors[g.type]}">${g.label}</span>
+            <span style="font-size:11px;font-weight:600;background:${groupColors[g.type]};color:#fff;padding:2px 8px;border-radius:99px;">${items.length}건</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">${cardsHtml}</div>
+        </div>`;
+      }).join('');
+
+  panel.innerHTML = `
+    <div class="cal-day-panel-title">
+      <i class="ti ti-calendar-event"></i>${dayLabel}
+      <button onclick="closeCalDay()" style="margin-left:auto;border:none;background:var(--gray-bg);border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:16px;"><i class="ti ti-x"></i></button>
+    </div>
+    ${addForm}
+    <div style="margin-top:12px;" id="cal-act-list">${actHtml}</div>`;
+
+  // sido 초기화
+  setTimeout(() => {
+    const s = document.getElementById('cal-input-sido');
+    if (s && !s.innerHTML.includes('서울')) {
+      s.innerHTML = buildSidoOptions();
+      s.addEventListener('change', function() { onSidoChange('cal-input-sido','cal-input-sigungu'); });
+    }
+  }, 0);
+}
+
+function buildCalCard(a, key) {
+  const typeColor = TYPE_COLOR[a.type] || 'call';
+  const statusBadge = a.status === 'done'
+    ? '<span class="act-status-badge done" style="font-size:10px;padding:2px 8px"><i class="ti ti-check" style="font-size:9px"></i> 완료</span>'
+    : a.status === 'failed'
+    ? '<span class="act-status-badge failed" style="font-size:10px;padding:2px 8px"><i class="ti ti-x" style="font-size:9px"></i> 무산</span>'
+    : '<span style="font-size:10px;padding:2px 8px;background:var(--gold-bg);color:var(--gold);border-radius:99px;font-weight:700">예정</span>';
+
+  const birthHtml = (()=>{
+    if (!a.birth) return '';
+    const dg = a.birth.replace(/[^0-9]/g,'');
+    if (dg.length < 8) return '';
+    const y=parseInt(dg.slice(0,4)), m=parseInt(dg.slice(4,6))-1, d=parseInt(dg.slice(6,8));
+    const today = new Date(); let age = today.getFullYear()-y;
+    if (today.getMonth()<m||(today.getMonth()===m&&today.getDate()<d)) age--;
+    if (age<0||age>120) return '';
+    return `<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--gold);font-weight:600;"><i class="ti ti-cake" style="font-size:11px"></i>${dg.slice(0,4)}-${dg.slice(4,6)}-${dg.slice(6,8)} · ${age}세</div>`;
+  })();
+
+  let btns = '';
+  if (a.status === 'pending') {
+    btns = `<button class="act-btn done-btn" onclick="calMarkDone(${a.id},'${key}')"><i class="ti ti-check"></i> 완료</button>
+            <button class="act-btn fail-btn" onclick="calMarkFail(${a.id},'${key}')"><i class="ti ti-x"></i> 무산</button>
+            <button class="act-btn" style="border:1.5px solid var(--navy3);background:var(--sky);color:var(--navy);" onclick="openCalEdit(${a.id},'${key}')"><i class="ti ti-edit"></i> 수정</button>
+            <button class="act-btn del-btn" onclick="calDeleteActivity(${a.id},'${key}')"><i class="ti ti-trash"></i></button>`;
+  } else {
+    btns = `<button class="act-btn undo-btn" onclick="calUndo(${a.id},'${key}')"><i class="ti ti-rotate-left"></i> 되돌리기</button>
+            <button class="act-btn" style="border:1.5px solid var(--navy3);background:var(--sky);color:var(--navy);" onclick="openCalEdit(${a.id},'${key}')"><i class="ti ti-edit"></i> 수정</button>
+            <button class="act-btn del-btn" onclick="calDeleteActivity(${a.id},'${key}')"><i class="ti ti-trash"></i></button>`;
+  }
+
+  return `<div class="act-card ${typeColor} ${a.status!=='pending'?'done':''}">
+    <div class="act-top">
+      <span class="act-type-badge ${typeColor}"><i class="ti ${TYPE_ICON[a.type]}"></i> ${TYPE_LABEL[a.type]}</span>
+      <div class="act-body">
+        <div class="act-name">${a.name} ${a.product?`<span style="font-size:12px;font-weight:400;color:var(--text2)">· ${a.product}</span>`:''} ${statusBadge}</div>
+        ${a.phone?`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);margin-top:3px;"><i class="ti ti-phone" style="font-size:11px;color:var(--navy3)"></i>${a.phone}</div>`:''}
+        ${birthHtml}
+        ${a.address?`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);margin-top:2px;"><i class="ti ti-map-pin" style="font-size:11px;color:#9b59b6"></i>${a.address}</div>`:''}
+        ${a.time?`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);margin-top:2px;"><i class="ti ti-clock" style="font-size:11px"></i>${a.time}</div>`:''}
+        ${a.memo?`<div class="act-detail" style="margin-top:4px;">${a.memo}</div>`:''}
+      </div>
+    </div>
+    <div class="act-status-row">${btns}</div>
+    ${a.reason?`<div class="reason-display"><i class="ti ti-alert-circle" style="font-size:13px;flex-shrink:0"></i>${a.reason}</div>`:''}
+  </div>`;
+}
+
+window.closeCalDay = function() {
+  calSelectedKey = null;
+  document.getElementById('cal-day-panel').style.display = 'none';
+  renderCalendar();
+};
+
+// 캘린더 활동 유형 선택
+let calType = 'call';
+window.setCalType = function(type) {
+  calType = type;
+  document.querySelectorAll('#cal-type-btns .type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+};
+
+window.toggleCalForm = function() {
+  const body = document.getElementById('cal-add-body');
+  const arrow = document.getElementById('cal-form-arrow');
+  if (!body) return;
+  const open = body.style.display === '';
+  body.style.display = open ? 'none' : '';
+  arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+};
+
+// 캘린더 활동 추가
+window.calAddActivity = async function() {
+  if (!calSelectedKey) return;
+  const name = document.getElementById('cal-input-name').value.trim();
+  if (!name) { alert('고객명을 입력해주세요.'); return; }
+  const phone   = document.getElementById('cal-input-phone').value.trim();
+  const birth   = document.getElementById('cal-input-birth').value.trim();
+  const sido    = document.getElementById('cal-input-sido').value;
+  const sigungu = document.getElementById('cal-input-sigungu').value;
+  const addrDetail = document.getElementById('cal-input-address').value.trim();
+  const address = [sido, sigungu, addrDetail].filter(Boolean).join(' ');
+  const product = document.getElementById('cal-input-product').value.trim();
+  const time    = document.getElementById('cal-input-time').value.trim();
+  const memo    = document.getElementById('cal-input-memo').value.trim();
+
+  if (!allData[calSelectedKey]) allData[calSelectedKey] = [];
+  allData[calSelectedKey].push({ id: Date.now(), type: calType, name, phone, birth, address, product, time, memo, status:'pending', reason:'' });
+
+  ['cal-input-name','cal-input-phone','cal-input-birth','cal-input-address','cal-input-product','cal-input-time','cal-input-memo'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const agedisp = document.getElementById('cal-age-disp'); if (agedisp) agedisp.textContent='';
+  const sg = document.getElementById('cal-input-sigungu'); if(sg){sg.innerHTML='<option value="">시/군/구</option>';sg.disabled=true;sg.style.opacity='.6';}
+  const sd = document.getElementById('cal-input-sido'); if(sd) sd.value='';
+
+  renderCalDayPanel(calSelectedKey);
+  renderCalendar();
+  await persist();
+};
+
+// 캘린더 상태 변경
+window.calMarkDone = async function(id, key) {
+  const a = (allData[key]||[]).find(a=>a.id===id); if(!a) return;
+  a.status='done'; a.reason='';
+  renderCalDayPanel(key); renderCalendar(); await persist();
+};
+window.calMarkFail = async function(id, key) {
+  const a = (allData[key]||[]).find(a=>a.id===id); if(!a) return;
+  a.status='failed'; a.reason='미처리';
+  renderCalDayPanel(key); renderCalendar(); await persist();
+};
+window.calUndo = async function(id, key) {
+  const a = (allData[key]||[]).find(a=>a.id===id); if(!a) return;
+  a.status='pending'; a.reason='';
+  renderCalDayPanel(key); renderCalendar(); await persist();
+};
+window.calDeleteActivity = async function(id, key) {
+  allData[key] = (allData[key]||[]).filter(a=>a.id!==id);
+  renderCalDayPanel(key); renderCalendar(); await persist();
+};
+
+// 캘린더 수정 (기존 edit 모달 재활용)
+let calEditKey = null;
+window.openCalEdit = function(id, key) {
+  calEditKey = key;
+  // allData[key] 기준으로 openEdit 로직 수행
+  const acts = allData[key] || [];
+  const a = acts.find(a=>a.id===id); if(!a) return;
+  editType = a.type;
+  document.getElementById('edit-id').value = id + '|' + key;
+  document.getElementById('edit-name').value    = a.name    || '';
+  document.getElementById('edit-phone').value   = a.phone   || '';
+  document.getElementById('edit-birth').value   = a.birth   || '';
+  document.getElementById('edit-address').value = a.address ? a.address.split(' ').slice(2).join(' ') : '';
+  document.getElementById('edit-product').value = a.product || '';
+  document.getElementById('edit-time').value    = a.time    || '';
+  document.getElementById('edit-memo').value    = a.memo    || '';
+  // sido/sigungu 복원
+  const parts = (a.address||'').split(' ');
+  const eSido = SIDO_LIST.find(s=>parts[0]===s)||'';
+  const eSigungu = eSido&&SIGUNGU[eSido]?(SIGUNGU[eSido].find(s=>parts[1]===s)||''):'';
+  const eDetail = parts.slice(eSido?(eSigungu?2:1):0).join(' ');
+  document.getElementById('edit-sido').value = eSido;
+  document.getElementById('edit-sigungu').innerHTML = buildSigunguOptions(eSido);
+  document.getElementById('edit-sigungu').disabled = !eSido;
+  document.getElementById('edit-sigungu').style.opacity = eSido?'1':'.6';
+  if(eSigungu) document.getElementById('edit-sigungu').value = eSigungu;
+  document.getElementById('edit-address').value = eDetail;
+  document.getElementById('edit-birth-row').style.display = '';
+  calcEditAge();
+  document.querySelectorAll('#edit-type-btns .type-btn').forEach(b=>b.classList.toggle('active',b.dataset.type===editType));
+  document.getElementById('edit-overlay').style.display = '';
+};
+
 window.switchTab = function(tab) {
   currentTab = tab;
-  ['today','past','stats'].forEach(t => {
+  ['cal','today','past','stats'].forEach(t => {
     document.getElementById('panel-' + t).classList.toggle('active', t === tab);
     document.getElementById('tab-' + t).classList.toggle('active', t === tab);
   });
+  if (tab === 'cal') renderCalendar();
   if (tab === 'past') renderPast();
   if (tab === 'stats') renderStats();
 };
+
+// 시/도 선택 초기화
+document.getElementById('input-sido').innerHTML = buildSidoOptions();
+document.getElementById('edit-sido').innerHTML = buildSidoOptions();
+
+document.getElementById('input-sido').addEventListener('change', function() {
+  onSidoChange('input-sido', 'input-sigungu');
+});
+document.getElementById('edit-sido').addEventListener('change', function() {
+  onSidoChange('edit-sido', 'edit-sigungu');
+});
 </script>
 </body>
 </html>
