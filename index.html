@@ -263,6 +263,11 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
       <div class="form-row">
         <input type="text" id="input-phone" placeholder="연락처 (선택)" maxlength="20" />
       </div>
+      <div class="form-row" id="row-birth" style="display:none;">
+        <input type="text" id="input-birth" placeholder="생년월일 (예: 19850315)" maxlength="8"
+          oninput="calcAge()" style="flex:1" />
+        <div id="age-display" style="display:flex;align-items:center;justify-content:center;min-width:64px;height:42px;border-radius:99px;background:var(--gold-bg);color:var(--gold);font-size:14px;font-weight:700;border:1.5px solid var(--gold-light);flex-shrink:0;padding:0 12px;white-space:nowrap;"></div>
+      </div>
       <div class="form-row">
         <input type="text" id="input-address" placeholder="주소 (선택)" maxlength="60" />
       </div>
@@ -355,6 +360,25 @@ window.selectType = function(type) {
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
   const p = document.getElementById('input-product');
   p.placeholder = type === 'call' ? '보험료 (예: 월 5만원)' : type === 'contract' ? '상품명 (예: 종신보험)' : type === 'meet' ? '상품명 (예: 연금보험)' : '상품명 (선택)';
+  const rowBirth = document.getElementById('row-birth');
+  rowBirth.style.display = type === 'call' ? '' : 'none';
+  if (type !== 'call') {
+    document.getElementById('input-birth').value = '';
+    document.getElementById('age-display').textContent = '';
+  }
+};
+
+window.calcAge = function() {
+  const val = document.getElementById('input-birth').value.replace(/[^0-9]/g, '');
+  const disp = document.getElementById('age-display');
+  if (val.length !== 8) { disp.textContent = ''; return; }
+  const y = parseInt(val.slice(0,4)), m = parseInt(val.slice(4,6))-1, d = parseInt(val.slice(6,8));
+  if (isNaN(y)||isNaN(m)||isNaN(d)||m<0||m>11||d<1||d>31) { disp.textContent = ''; return; }
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  if (today.getMonth() < m || (today.getMonth() === m && today.getDate() < d)) age--;
+  if (age < 0 || age > 120) { disp.textContent = ''; return; }
+  disp.textContent = age + '세';
 };
 
 
@@ -369,11 +393,13 @@ window.addActivity = async function() {
   const phone = document.getElementById('input-phone').value.trim();
   const memo = document.getElementById('input-memo').value.trim();
   const address = document.getElementById('input-address').value.trim();
+  const birth = selectedType === 'call' ? document.getElementById('input-birth').value.trim() : '';
   if (!name) { alert('고객명을 입력해주세요.'); return; }
   const acts = getActivities();
-  acts.push({ id: Date.now(), type: selectedType, name, product, time, phone, address, memo, status: 'pending', reason: '' });
+  acts.push({ id: Date.now(), type: selectedType, name, product, time, phone, address, birth, memo, status: 'pending', reason: '' });
   setActivities(acts);
-  ['input-name','input-product','input-time','input-phone','input-address','input-memo'].forEach(id => document.getElementById(id).value = '');
+  ['input-name','input-product','input-time','input-phone','input-address','input-memo','input-birth'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('age-display').textContent = '';
   await persist();
 };
 
@@ -457,6 +483,7 @@ function renderToday() {
           <div class="act-name">${a.name} ${a.product ? `<span style="font-size:12px;font-weight:400;color:var(--text2)">· ${a.product}</span>` : ''}</div>
           ${a.memo ? `<div class="act-detail">${a.memo}</div>` : ''}
           <div class="act-meta">
+            ${a.birth && a.birth.length === 8 ? (() => { const y=parseInt(a.birth.slice(0,4)),m=parseInt(a.birth.slice(4,6))-1,d=parseInt(a.birth.slice(6,8)); const today=new Date(); let age=today.getFullYear()-y; if(today.getMonth()<m||(today.getMonth()===m&&today.getDate()<d))age--; return `<span class="act-tag" style="background:var(--gold-bg);color:var(--gold);font-weight:700;"><i class="ti ti-cake" style="font-size:11px"></i>${a.birth.slice(0,4)}.${a.birth.slice(4,6)}.${a.birth.slice(6,8)} · ${age}세</span>`; })() : ''}
             ${a.time ? `<span class="act-tag"><i class="ti ti-clock" style="font-size:11px"></i>${a.time}</span>` : ''}
             ${a.phone ? `<span class="act-tag"><i class="ti ti-phone" style="font-size:11px"></i>${a.phone}</span>` : ''}
             ${a.address ? `<span class="act-tag"><i class="ti ti-map-pin" style="font-size:11px"></i>${a.address}</span>` : ''}
