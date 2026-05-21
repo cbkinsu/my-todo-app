@@ -194,6 +194,8 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
 .tb-count { font-size: 12px; color: var(--text3); width: 30px; text-align: right; flex-shrink: 0; }
 
 .no-data { text-align: center; padding: 2.5rem; color: var(--text3); font-size: 14px; border: 1.5px dashed var(--border); border-radius: var(--radius-xl); }
+.edit-input { height:42px; border-radius:99px; border:1.5px solid var(--border); background:var(--gray-bg); color:var(--text); padding:0 14px; font-size:14px; outline:none; font-family:inherit; width:100%; }
+.edit-input:focus { border-color:var(--navy3); background:#fff; }
 .no-data i { font-size: 28px; display: block; margin-bottom: 8px; }
 
 .panel { display: none; }
@@ -244,7 +246,11 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
     </div>
 
     <div class="add-card">
-      <div class="add-card-title"><i class="ti ti-plus-circle"></i> 활동 추가</div>
+      <div class="add-card-title" onclick="toggleAddForm()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+        <span><i class="ti ti-plus-circle"></i> 활동 추가</span>
+        <i class="ti ti-chevron-down" id="add-form-arrow" style="font-size:18px;color:var(--navy3);transition:transform 0.25s;transform:rotate(-90deg);"></i>
+      </div>
+      <div id="add-form-body" style="display:none;">
       <div class="type-btns" id="type-btns">
         <button class="type-btn active" data-type="call" onclick="selectType('call')"><i class="ti ti-phone"></i> 전화콜</button>
         <button class="type-btn" data-type="meet" onclick="selectType('meet')"><i class="ti ti-users"></i> 미팅</button>
@@ -255,15 +261,9 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
         <input type="text" id="input-name" placeholder="고객명" maxlength="20" />
       </div>
       <div class="form-row">
-        <input type="text" id="input-product" placeholder="보험료 (예: 월 5만원)" maxlength="20" />
-      </div>
-      <div class="form-row">
-        <input type="text" id="input-time" placeholder="시간 (예: 오후 2시, 수시)" maxlength="20" />
-      </div>
-      <div class="form-row">
         <input type="text" id="input-phone" placeholder="연락처 (선택)" maxlength="20" />
       </div>
-      <div class="form-row" id="row-birth" style="display:none;">
+      <div class="form-row" id="row-birth">
         <input type="text" id="input-birth" placeholder="생년월일 (예: 19850315)" maxlength="8"
           oninput="calcAge()" style="flex:1" />
         <div id="age-display" style="display:flex;align-items:center;justify-content:center;min-width:64px;height:42px;border-radius:99px;background:var(--gold-bg);color:var(--gold);font-size:14px;font-weight:700;border:1.5px solid var(--gold-light);flex-shrink:0;padding:0 12px;white-space:nowrap;"></div>
@@ -272,13 +272,50 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
         <input type="text" id="input-address" placeholder="주소 (선택)" maxlength="60" />
       </div>
       <div class="form-row">
+        <input type="text" id="input-product" placeholder="보험료 / 상품명 (선택)" maxlength="20" />
+      </div>
+      <div class="form-row">
+        <input type="text" id="input-time" placeholder="시간 (예: 오후 2시, 수시)" maxlength="20" />
+      </div>
+      <div class="form-row">
         <textarea id="input-memo" placeholder="메모 (선택)" maxlength="100"></textarea>
       </div>
       <button class="submit-btn" onclick="addActivity()"><i class="ti ti-plus"></i> 활동 등록</button>
+      </div><!-- /add-form-body -->
     </div>
 
     <div class="section-lbl"><i class="ti ti-list"></i> 오늘의 영업 활동</div>
     <div class="activity-list" id="activity-list"></div>
+  </div>
+
+  <!-- 수정 모달 -->
+  <div id="edit-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;overflow-y:auto;padding:20px 14px;">
+    <div style="background:#fff;border-radius:24px;padding:20px;max-width:440px;margin:30px auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:16px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px;"><i class="ti ti-edit"></i> 활동 수정</div>
+        <button onclick="closeEdit()" style="border:none;background:var(--gray-bg);border-radius:50%;width:34px;height:34px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:18px;"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;" id="edit-type-btns">
+        <button class="type-btn" data-type="call"     onclick="setEditType('call')"    ><i class="ti ti-phone"></i> 전화콜</button>
+        <button class="type-btn" data-type="meet"     onclick="setEditType('meet')"    ><i class="ti ti-users"></i> 미팅</button>
+        <button class="type-btn" data-type="contract" onclick="setEditType('contract')"><i class="ti ti-file-text"></i> 계약</button>
+        <button class="type-btn" data-type="followup" onclick="setEditType('followup')"><i class="ti ti-refresh"></i> 팔로업</button>
+      </div>
+      <input type="hidden" id="edit-id" />
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input type="text" id="edit-name"    placeholder="고객명"                   maxlength="20" class="edit-input" />
+        <input type="text" id="edit-phone"   placeholder="연락처"                   maxlength="20" class="edit-input" />
+        <div style="display:flex;gap:8px;" id="edit-birth-row">
+          <input type="text" id="edit-birth" placeholder="생년월일 (예: 19850315)"  maxlength="8"  oninput="calcEditAge()" class="edit-input" style="flex:1;" />
+          <div id="edit-age-disp" style="display:flex;align-items:center;justify-content:center;min-width:60px;height:42px;border-radius:99px;background:var(--gold-bg);color:var(--gold);font-size:14px;font-weight:700;border:1.5px solid var(--gold-light);padding:0 10px;white-space:nowrap;flex-shrink:0;"></div>
+        </div>
+        <input type="text" id="edit-address" placeholder="주소"                    maxlength="60" class="edit-input" />
+        <input type="text" id="edit-product" placeholder="보험료 / 상품명"         maxlength="20" class="edit-input" />
+        <input type="text" id="edit-time"    placeholder="시간"                     maxlength="20" class="edit-input" />
+        <textarea id="edit-memo" placeholder="메모" maxlength="100" class="edit-input" style="height:70px;border-radius:16px;resize:none;"></textarea>
+      </div>
+      <button onclick="saveEdit()" style="width:100%;margin-top:14px;height:46px;border-radius:99px;border:none;background:var(--navy);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="ti ti-device-floppy"></i> 저장</button>
+    </div>
   </div>
 
   <!-- 과거 탭 -->
@@ -355,17 +392,82 @@ function getActivities() { return allData[todayKey] || []; }
 function setActivities(arr) { allData[todayKey] = arr; }
 
 // ── 타입 선택 ─────────────────────────────
+
+// ── 수정 모달 ─────────────────────────────
+let editType = 'call';
+
+window.openEdit = function(id) {
+  const acts = getActivities();
+  const a = acts.find(a => a.id === id);
+  if (!a) return;
+  editType = a.type;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value    = a.name    || '';
+  document.getElementById('edit-phone').value   = a.phone   || '';
+  document.getElementById('edit-birth').value   = a.birth   || '';
+  document.getElementById('edit-address').value = a.address || '';
+  document.getElementById('edit-product').value = a.product || '';
+  document.getElementById('edit-time').value    = a.time    || '';
+  document.getElementById('edit-memo').value    = a.memo    || '';
+  document.querySelectorAll('#edit-type-btns .type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === editType));
+  document.getElementById('edit-birth-row').style.display = '';
+  calcEditAge();
+  document.getElementById('edit-overlay').style.display = '';
+};
+
+window.setEditType = function(type) {
+  editType = type;
+  document.querySelectorAll('#edit-type-btns .type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+};
+
+window.calcEditAge = function() {
+  const val = document.getElementById('edit-birth').value.replace(/[^0-9]/g, '');
+  const disp = document.getElementById('edit-age-disp');
+  if (val.length !== 8) { disp.textContent = ''; return; }
+  const y=parseInt(val.slice(0,4)), m=parseInt(val.slice(4,6))-1, d=parseInt(val.slice(6,8));
+  if (isNaN(y)||isNaN(m)||isNaN(d)||m<0||m>11||d<1||d>31) { disp.textContent=''; return; }
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  if (today.getMonth()<m||(today.getMonth()===m&&today.getDate()<d)) age--;
+  if (age<0||age>120) { disp.textContent=''; return; }
+  disp.textContent = age + '세';
+};
+
+window.closeEdit = function() {
+  document.getElementById('edit-overlay').style.display = 'none';
+};
+
+window.saveEdit = async function() {
+  const id = parseInt(document.getElementById('edit-id').value);
+  const acts = getActivities();
+  const a = acts.find(a => a.id === id);
+  if (!a) return;
+  a.type    = editType;
+  a.name    = document.getElementById('edit-name').value.trim();
+  a.phone   = document.getElementById('edit-phone').value.trim();
+  a.birth   = document.getElementById('edit-birth').value.trim();
+  a.address = document.getElementById('edit-address').value.trim();
+  a.product = document.getElementById('edit-product').value.trim();
+  a.time    = document.getElementById('edit-time').value.trim();
+  a.memo    = document.getElementById('edit-memo').value.trim();
+  if (!a.name) { alert('고객명을 입력해주세요.'); return; }
+  setActivities(acts);
+  closeEdit();
+  renderToday();
+  await persist();
+};
+
+window.toggleAddForm = function() {
+  const body = document.getElementById('add-form-body');
+  const arrow = document.getElementById('add-form-arrow');
+  const open = body.style.display === '';
+  body.style.display = open ? 'none' : '';
+  arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+};
+
 window.selectType = function(type) {
   selectedType = type;
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-  const p = document.getElementById('input-product');
-  p.placeholder = type === 'call' ? '보험료 (예: 월 5만원)' : type === 'contract' ? '상품명 (예: 종신보험)' : type === 'meet' ? '상품명 (예: 연금보험)' : '상품명 (선택)';
-  const rowBirth = document.getElementById('row-birth');
-  rowBirth.style.display = type === 'call' ? '' : 'none';
-  if (type !== 'call') {
-    document.getElementById('input-birth').value = '';
-    document.getElementById('age-display').textContent = '';
-  }
 };
 
 window.calcAge = function() {
@@ -393,14 +495,14 @@ window.addActivity = async function() {
   const phone = document.getElementById('input-phone').value.trim();
   const memo = document.getElementById('input-memo').value.trim();
   const address = document.getElementById('input-address').value.trim();
-  const birth = selectedType === 'call' ? document.getElementById('input-birth').value.trim() : '';
+  const birth = document.getElementById('input-birth').value.trim();
   if (!name) { alert('고객명을 입력해주세요.'); return; }
   const acts = getActivities();
   acts.push({ id: Date.now(), type: selectedType, name, product, time, phone, address, birth, memo, status: 'pending', reason: '' });
   setActivities(acts);
   ['input-name','input-product','input-time','input-phone','input-address','input-memo','input-birth'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('age-display').textContent = '';
-  await persist();
+  renderToday(); await persist();
 };
 
 // ── 상태 변경 ─────────────────────────────
@@ -409,7 +511,7 @@ window.markDone = async function(id) {
   const a = acts.find(a => a.id === id); if (!a) return;
   a.status = 'done'; a.reason = '';
   if (showReasonFor === id) showReasonFor = null;
-  setActivities(acts); await persist();
+  setActivities(acts); renderToday(); await persist();
 };
 window.markFail = function(id) {
   showReasonFor = showReasonFor === id ? null : id;
@@ -420,40 +522,21 @@ window.saveReason = async function(id) {
   const acts = getActivities();
   const a = acts.find(a => a.id === id); if (!a) return;
   a.status = 'failed'; a.reason = (el?.value || '').trim() || '이유 없음';
-  showReasonFor = null; setActivities(acts); await persist();
+  showReasonFor = null; setActivities(acts); renderToday(); await persist();
 };
 window.undoActivity = async function(id) {
   const acts = getActivities();
   const a = acts.find(a => a.id === id); if (!a) return;
   a.status = 'pending'; a.reason = '';
-  setActivities(acts); await persist();
+  setActivities(acts); renderToday(); await persist();
 };
 window.deleteActivity = async function(id) {
   setActivities(getActivities().filter(a => a.id !== id));
   if (showReasonFor === id) showReasonFor = null;
-  await persist();
+  renderToday(); await persist();
 };
 
-// ── 오늘 렌더링 ───────────────────────────
-function renderToday() {
-  const acts = getActivities();
-  const total = acts.length;
-  const done  = acts.filter(a => a.status === 'done').length;
-  const fail  = acts.filter(a => a.status === 'failed').length;
-  const pend  = acts.filter(a => a.status === 'pending').length;
-  document.getElementById('kpi-total').textContent = total;
-  document.getElementById('kpi-pend').textContent  = pend;
-  document.getElementById('kpi-done').textContent  = done;
-  document.getElementById('kpi-fail').textContent  = fail;
-  document.getElementById('today-goal-badge').textContent = `오늘 ${total}건`;
-
-  const list = document.getElementById('activity-list');
-  if (acts.length === 0) {
-    list.innerHTML = '<div class="empty-state"><i class="ti ti-phone-plus"></i>오늘의 영업 활동을 추가해보세요!</div>';
-    return;
-  }
-
-  function buildCard(a) {
+function buildCard(a) {
     const showReason = showReasonFor === a.id && a.status === 'pending';
     const typeColor = TYPE_COLOR[a.type] || 'call';
     const statusBadge = a.status === 'done'
@@ -465,9 +548,11 @@ function renderToday() {
     if (a.status === 'pending') {
       btns = `<button class="act-btn done-btn" onclick="markDone(${a.id})"><i class="ti ti-check"></i> 완료</button>
               <button class="act-btn fail-btn" onclick="markFail(${a.id})"><i class="ti ti-x"></i> 무산</button>
+              <button class="act-btn" style="border:1.5px solid var(--navy3);background:var(--sky);color:var(--navy);" onclick="openEdit(${a.id})"><i class="ti ti-edit"></i> 수정</button>
               <button class="act-btn del-btn" onclick="deleteActivity(${a.id})"><i class="ti ti-trash"></i></button>`;
     } else {
       btns = `<button class="act-btn undo-btn" onclick="undoActivity(${a.id})"><i class="ti ti-rotate-left"></i> 되돌리기</button>
+              <button class="act-btn" style="border:1.5px solid var(--navy3);background:var(--sky);color:var(--navy);" onclick="openEdit(${a.id})"><i class="ti ti-edit"></i> 수정</button>
               <button class="act-btn del-btn" onclick="deleteActivity(${a.id})"><i class="ti ti-trash"></i></button>`;
     }
     const reasonSection = showReason
@@ -495,6 +580,27 @@ function renderToday() {
       ${reasonSection}
     </div>`;
   }
+
+
+// ── 오늘 렌더링 ───────────────────────────
+function renderToday() {
+  const acts = getActivities();
+  const total = acts.length;
+  const done  = acts.filter(a => a.status === 'done').length;
+  const fail  = acts.filter(a => a.status === 'failed').length;
+  const pend  = acts.filter(a => a.status === 'pending').length;
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-pend').textContent  = pend;
+  document.getElementById('kpi-done').textContent  = done;
+  document.getElementById('kpi-fail').textContent  = fail;
+  document.getElementById('today-goal-badge').textContent = `오늘 ${total}건`;
+
+  const list = document.getElementById('activity-list');
+  if (acts.length === 0) {
+    list.innerHTML = '<div class="empty-state"><i class="ti ti-phone-plus"></i>오늘의 영업 활동을 추가해보세요!</div>';
+    return;
+  }
+
 
   const groups = [
     { type: 'call',     label: '전화콜',  icon: 'ti-phone',     color: 'call' },
