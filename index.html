@@ -264,6 +264,9 @@ html, body { height: 100%; background: var(--gray-bg); font-family: -apple-syste
         <input type="text" id="input-phone" placeholder="연락처 (선택)" maxlength="20" />
       </div>
       <div class="form-row">
+        <input type="text" id="input-address" placeholder="주소 (선택)" maxlength="60" />
+      </div>
+      <div class="form-row">
         <textarea id="input-memo" placeholder="메모 (선택)" maxlength="100"></textarea>
       </div>
       <button class="submit-btn" onclick="addActivity()"><i class="ti ti-plus"></i> 활동 등록</button>
@@ -365,11 +368,12 @@ window.addActivity = async function() {
   const time = document.getElementById('input-time').value.trim();
   const phone = document.getElementById('input-phone').value.trim();
   const memo = document.getElementById('input-memo').value.trim();
+  const address = document.getElementById('input-address').value.trim();
   if (!name) { alert('고객명을 입력해주세요.'); return; }
   const acts = getActivities();
-  acts.push({ id: Date.now(), type: selectedType, name, product, time, phone, memo, status: 'pending', reason: '' });
+  acts.push({ id: Date.now(), type: selectedType, name, product, time, phone, address, memo, status: 'pending', reason: '' });
   setActivities(acts);
-  ['input-name','input-product','input-time','input-phone','input-memo'].forEach(id => document.getElementById(id).value = '');
+  ['input-name','input-product','input-time','input-phone','input-address','input-memo'].forEach(id => document.getElementById(id).value = '');
   await persist();
 };
 
@@ -422,7 +426,8 @@ function renderToday() {
     list.innerHTML = '<div class="empty-state"><i class="ti ti-phone-plus"></i>오늘의 영업 활동을 추가해보세요!</div>';
     return;
   }
-  list.innerHTML = acts.map(a => {
+
+  function buildCard(a) {
     const showReason = showReasonFor === a.id && a.status === 'pending';
     const typeColor = TYPE_COLOR[a.type] || 'call';
     const statusBadge = a.status === 'done'
@@ -454,6 +459,7 @@ function renderToday() {
           <div class="act-meta">
             ${a.time ? `<span class="act-tag"><i class="ti ti-clock" style="font-size:11px"></i>${a.time}</span>` : ''}
             ${a.phone ? `<span class="act-tag"><i class="ti ti-phone" style="font-size:11px"></i>${a.phone}</span>` : ''}
+            ${a.address ? `<span class="act-tag"><i class="ti ti-map-pin" style="font-size:11px"></i>${a.address}</span>` : ''}
             ${statusBadge}
           </div>
         </div>
@@ -461,6 +467,32 @@ function renderToday() {
       <div class="act-status-row">${btns}</div>
       ${reasonSection}
     </div>`;
+  }
+
+  const groups = [
+    { type: 'call',     label: '전화콜',  icon: 'ti-phone',     color: 'call' },
+    { type: 'meet',     label: '미팅',    icon: 'ti-users',     color: 'meet' },
+    { type: 'contract', label: '계약',    icon: 'ti-file-text', color: 'contract' },
+    { type: 'followup', label: '팔로업',  icon: 'ti-refresh',   color: 'followup' },
+  ];
+
+  const groupColors = { call: '#254d7a', meet: '#c8860a', contract: '#1a7a4a', followup: '#9b59b6' };
+  const groupBg     = { call: '#e8f2fb', meet: '#fef8ec', contract: '#eaf5ef', followup: '#f3eafd' };
+
+  list.innerHTML = groups.map(g => {
+    const items = acts.filter(a => a.type === g.type);
+    if (items.length === 0) return '';
+    return `
+      <div class="group-section" style="margin-bottom:16px;">
+        <div class="group-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 14px;background:${groupBg[g.type]};border-radius:99px;">
+          <i class="ti ${g.icon}" style="font-size:15px;color:${groupColors[g.type]}"></i>
+          <span style="font-size:13px;font-weight:700;color:${groupColors[g.type]}">${g.label}</span>
+          <span style="font-size:11px;font-weight:600;background:${groupColors[g.type]};color:#fff;padding:2px 9px;border-radius:99px;margin-left:2px;">${items.length}건</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          ${items.map(a => buildCard(a)).join('')}
+        </div>
+      </div>`;
   }).join('');
 }
 
@@ -509,6 +541,7 @@ function renderPast() {
               <div class="act-meta">
                 ${a.time ? `<span class="act-tag"><i class="ti ti-clock" style="font-size:11px"></i>${a.time}</span>` : ''}
                 ${a.phone ? `<span class="act-tag"><i class="ti ti-phone" style="font-size:11px"></i>${a.phone}</span>` : ''}
+            ${a.address ? `<span class="act-tag"><i class="ti ti-map-pin" style="font-size:11px"></i>${a.address}</span>` : ''}
                 ${sb}
               </div>
               ${a.reason ? `<div class="reason-display" style="margin-top:6px"><i class="ti ti-alert-circle" style="font-size:13px;flex-shrink:0"></i>${a.reason}</div>` : ''}
